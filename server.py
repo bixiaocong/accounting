@@ -1,0 +1,392 @@
+#!/usr/bin/env python3
+"""小账本的本地服务：提供页面，并把数据直接读写到 data.json。"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import os
+import re
+import tempfile
+import threading
+import uuid
+import webbrowser
+from datetime import date, datetime
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from urllib.parse import parse_qs, urlparse
+from urllib.request import urlopen
+
+ROOT = Path(__file__).resolve().parent
+DATA_FILE = ROOT / "data.json"
+HOST = "127.0.0.1"
+DEFAULT_PORT = 8765
+MAX_BODY_BYTES = 6 * 1024 * 1024
+DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+CATEGORIES = {"餐饮", "交通", "购物", "学习", "居住", "娱乐", "医疗", "其他"}
+DATA_LOCK = threading.RLock()
+
+
+class ApiError(Exception):
+    def __init__(self, status: int, message: str):
+        super().__init__(message)
+        self.status = status
+        self.message = message
+
+
+def now_ms() -> int:
+    return int(datetime.now().timestamp() * 1000)
+
+
+def empty_data() -> dict:
+    return {"version": 1, "records": []}
+
+
+def valid_date(value: str) -> bool:
+    if not isinstance(value, str) or not DATE_RE.fullmatch(value):
+        return False
+    try:
+        datetime.strptime(value, "%Y-%m-%d")
+        return True
+    except ValueError:
+        return False
+
+
+def normalise_record(raw: object) -> dict:
+    if not isinstance(raw, dict):
+        raise ApiError(400, "记录格式不正确")
+
+    record_date = str(raw.get("date", "")).strip()
+    if not valid_date(record_date):
+        raise ApiError(400, "日期格式必须为 YYYY-MM-DD")
+
+    item = str(raw.get("item", "")).strip()
+    if not item:
+        raise ApiError(400, "消费项目不能为空")
+    item = item[:60]
+
+    try:
+        amount = round(float(raw.get("amount")), 2)
+    except (TypeError, ValueError):
+        raise ApiError(400, "金额格式不正确")
+    if not math.isfinite(amount) or amount <= 0 or amount > 99999999.99:
+        raise ApiError(400, "金额必须大于 0 且不超过 99,999,999.99")
+
+    category = str(raw.get("category", "其他")).strip()
+    if category not in CATEGORIES:
+        category = "其他"
+
+    record_id = str(raw.get("id") or uuid.uuid4())
+    if not record_id or len(record_id) > 100:
+        record_id = str(uuid.uuid4())
+
+    try:
+        created_at = int(raw.get("createdAt") or now_ms())
+    except (TypeError, ValueError):
+        created_at = now_ms()
+
+    return {
+        "id": record_id,
+        "date": record_date,
+        "item": item,
+        "amount": amount,
+        "category": category,
+        "createdAt": created_at,
+    }
+
+
+def normalise_records(raw_records: object) -> list[dict]:
+    if not isinstance(raw_records, list):
+        raise ApiError(400, "records 必须是数组")
+
+    records: list[dict] = []
+    seen_ids: set[str] = set()
+    for raw in raw_records:
+        record = normalise_record(raw)
+        if record["id"] in seen_ids:
+            record["id"] = str(uuid.uuid4())
+        seen_ids.add(record["id"])
+        records.append(record)
+
+    records.sort(key=lambda record: (record["date"], record["createdAt"]))
+    return records
+
+
+def read_data_locked() -> dict:
+    if not DATA_FILE.exists():
+        return empty_data()
+
+    try:
+        with DATA_FILE.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except (OSError, json.JSONDecodeError) as error:
+        raise ApiError(500, f"无法读取 data.json：{error}")
+
+    if isinstance(payload, list):
+        raw_records = payload
+    elif isinstance(payload, dict):
+        raw_records = payload.get("records", [])
+    else:
+        raise ApiError(500, "data.json 的格式不正确")
+
+    if not isinstance(raw_records, list):
+        raise ApiError(500, "data.json 里的 records 必须是数组")
+
+    records = [normalise_record(record) for record in raw_records]
+    records.sort(key=lambda record: (record["date"], record["createdAt"]))
+    return {"version": 1, "records": records}
+
+
+def write_data_locked(records: list[dict]) -> None:
+    payload = {"version": 1, "records": records}
+    temp_path = None
+    try:
+        fd, temp_path = tempfile.mkstemp(
+            prefix=".data-", suffix=".tmp", dir=str(ROOT)
+        )
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, ensure_ascii=False, indent=2)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temp_path, DATA_FILE)
+        temp_path = None
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            os.unlink(temp_path)
+
+
+def ensure_data_file() -> None:
+    with DATA_LOCK:
+        if not DATA_FILE.exists():
+            write_data_locked([])
+
+
+def backup_payload(records: list[dict]) -> dict:
+    return {
+        "app": "小账本",
+        "version": 1,
+        "exportedAt": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "records": records,
+    }
+
+
+class LedgerHandler(SimpleHTTPRequestHandler):
+    server_version = "LittleLedger/1.0"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=str(ROOT), **kwargs)
+
+    def log_message(self, fmt: str, *args) -> None:
+        # 只保留简短日志，避免终端被资源请求刷屏。
+        print(f"[小账本] {fmt % args}")
+
+    def send_json(self, status: int, payload: object) -> None:
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.end_headers()
+        if self.command != "HEAD":
+            self.wfile.write(body)
+
+    def send_api_error(self, error: ApiError) -> None:
+        self.send_json(error.status, {"error": error.message})
+
+    def read_json_body(self) -> object:
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            raise ApiError(400, "请求长度不正确")
+        if length <= 0:
+            raise ApiError(400, "请求内容为空")
+        if length > MAX_BODY_BYTES:
+            raise ApiError(413, "导入文件太大了")
+
+        try:
+            return json.loads(self.rfile.read(length).decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            raise ApiError(400, "JSON 格式不正确")
+
+    def do_GET(self) -> None:
+        parsed = urlparse(self.path)
+        path = parsed.path
+
+        try:
+            if path == "/api/health":
+                self.send_json(200, {"ok": True, "dataFile": str(DATA_FILE)})
+                return
+
+            if path == "/api/data":
+                with DATA_LOCK:
+                    payload = read_data_locked()
+                self.send_json(200, payload)
+                return
+
+            if path == "/api/backup":
+                with DATA_LOCK:
+                    records = read_data_locked()["records"]
+                body = json.dumps(
+                    backup_payload(records), ensure_ascii=False, indent=2
+                ).encode("utf-8")
+                filename = f"ledger-backup-{date.today().isoformat()}.json"
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header(
+                    "Content-Disposition", f'attachment; filename="{filename}"'
+                )
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                if self.command != "HEAD":
+                    self.wfile.write(body)
+                return
+
+            if path == "/data.json":
+                with DATA_LOCK:
+                    payload = read_data_locked()
+                body = json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                if self.command != "HEAD":
+                    self.wfile.write(body)
+                return
+
+            super().do_GET()
+        except ApiError as error:
+            self.send_api_error(error)
+        except Exception as error:  # noqa: BLE001 - 保证 API 总能返回 JSON
+            self.send_api_error(ApiError(500, f"服务器内部错误：{error}"))
+
+    def do_HEAD(self) -> None:
+        # 让 /api/backup 等接口也支持 HEAD 探测；静态文件仍走标准 HEAD。
+        if urlparse(self.path).path.startswith("/api/"):
+            self.do_GET()
+        else:
+            super().do_HEAD()
+
+    def do_POST(self) -> None:
+        path = urlparse(self.path).path
+
+        try:
+            body = self.read_json_body()
+
+            if path == "/api/records":
+                if not isinstance(body, dict):
+                    raise ApiError(400, "记录格式不正确")
+                record = normalise_record(body)
+                record["id"] = str(uuid.uuid4())
+                record["createdAt"] = now_ms()
+                with DATA_LOCK:
+                    records = read_data_locked()["records"]
+                    records.append(record)
+                    records.sort(
+                        key=lambda item: (item["date"], item["createdAt"])
+                    )
+                    write_data_locked(records)
+                self.send_json(201, {"record": record})
+                return
+
+            if path == "/api/import":
+                raw_records = body.get("records") if isinstance(body, dict) else body
+                records = normalise_records(raw_records)
+                with DATA_LOCK:
+                    write_data_locked(records)
+                self.send_json(
+                    200,
+                    {"version": 1, "records": records, "imported": len(records)},
+                )
+                return
+
+            raise ApiError(404, "接口不存在")
+        except ApiError as error:
+            self.send_api_error(error)
+        except Exception as error:  # noqa: BLE001
+            self.send_api_error(ApiError(500, f"服务器内部错误：{error}"))
+
+    def do_DELETE(self) -> None:
+        parsed = urlparse(self.path)
+
+        try:
+            if parsed.path != "/api/records":
+                raise ApiError(404, "接口不存在")
+
+            record_id = parse_qs(parsed.query).get("id", [""])[0]
+            if not record_id:
+                raise ApiError(400, "缺少记录 id")
+
+            with DATA_LOCK:
+                records = read_data_locked()["records"]
+                remaining = [record for record in records if record["id"] != record_id]
+                if len(remaining) == len(records):
+                    raise ApiError(404, "没有找到这条记录")
+                write_data_locked(remaining)
+
+            self.send_json(200, {"deleted": record_id})
+        except ApiError as error:
+            self.send_api_error(error)
+        except Exception as error:  # noqa: BLE001
+            self.send_api_error(ApiError(500, f"服务器内部错误：{error}"))
+
+
+def server_already_running(port: int) -> bool:
+    """检查该端口上是否已经有小账本在运行。"""
+    try:
+        with urlopen(f"http://{HOST}:{port}/api/health", timeout=0.5) as response:
+            return response.status == 200
+    except OSError:
+        return False
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="小账本本地服务")
+    parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="监听端口")
+    parser.add_argument("--no-browser", action="store_true", help="不要自动打开浏览器")
+    args = parser.parse_args()
+
+    url = f"http://{HOST}:{args.port}/"
+
+    if server_already_running(args.port):
+        print("")
+        print("  小账本已经在运行")
+        print(f"  访问地址：{url}")
+        print("")
+        if not args.no_browser:
+            webbrowser.open(url)
+        return
+
+    ensure_data_file()
+
+    try:
+        server = ThreadingHTTPServer((HOST, args.port), LedgerHandler)
+    except OSError as error:
+        print(f"启动失败：端口 {args.port} 可能已被占用。{error}")
+        print(f"可以换一个端口，例如：python3 server.py --port {args.port + 1}")
+        raise SystemExit(1)
+
+    print("")
+    print("  小账本已启动")
+    print(f"  访问地址：{url}")
+    print(f"  数据文件：{DATA_FILE}")
+    print("  按 Ctrl+C 停止服务")
+    print("")
+
+    if not args.no_browser:
+        threading.Timer(0.6, lambda: webbrowser.open(url)).start()
+
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\n小账本已停止。")
+    finally:
+        server.server_close()
+
+
+if __name__ == "__main__":
+    main()
