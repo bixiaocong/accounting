@@ -819,6 +819,90 @@
 
   .calendar-day.is-future .calendar-amount { display: none; }
 
+  /* ---------- Category stats ---------- */
+  .category-stats { margin-top: 24px; }
+
+  .category-stats-list {
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+  }
+
+  .cat-stat-row {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .cat-stat-icon {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    background: #f5efe4;
+    font-size: 17px;
+  }
+
+  .cat-stat-main { min-width: 0; }
+
+  .cat-stat-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .cat-stat-name {
+    color: #41433b;
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+
+  .cat-stat-percent {
+    color: var(--muted-light);
+    font-size: 10.5px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cat-stat-track {
+    height: 7px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #efe9dd;
+  }
+
+  .cat-stat-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #e58a6d, var(--accent));
+    transition: width 0.35s ease;
+  }
+
+  .cat-stat-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+    white-space: nowrap;
+  }
+
+  .cat-stat-side strong {
+    color: var(--ink);
+    font-size: 13.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cat-stat-side span {
+    color: var(--muted-light);
+    font-size: 10px;
+  }
+
+  .category-stats .day-empty { min-height: 84px; }
+
   .day-detail {
     margin-top: 22px;
     padding: 17px 2px 0;
@@ -1496,6 +1580,14 @@
           <div class="calendar-grid" id="calendarContent"></div>
         </div>
 
+        <div class="category-stats">
+          <div class="calendar-head">
+            <h3>分类统计</h3>
+            <span id="categoryStatsHint">本月各分类支出</span>
+          </div>
+          <div id="categoryStatsContent"></div>
+        </div>
+
         <div class="day-detail">
           <div class="day-head day-detail-head">
             <div class="day-date-wrap">
@@ -1611,6 +1703,8 @@
     historyTotal: document.getElementById("historyTotal"),
     historySubtitle: document.getElementById("historySubtitle"),
     calendarContent: document.getElementById("calendarContent"),
+    categoryStatsContent: document.getElementById("categoryStatsContent"),
+    categoryStatsHint: document.getElementById("categoryStatsHint"),
     dayDetailName: document.getElementById("dayDetailName"),
     dayDetailSub: document.getElementById("dayDetailSub"),
     dayDetailTotal: document.getElementById("dayDetailTotal"),
@@ -1957,6 +2051,102 @@
     els.calendarContent.replaceChildren(fragment);
   }
 
+  /* ---------- Render: category stats ---------- */
+  function renderCategoryStats() {
+    const records = recordsForMonth(selectedMonth);
+    const totals = new Map();
+
+    records.forEach(function (record) {
+      const name = categoryInfo(record.category).name;
+      const current = totals.get(name) || { total: 0, count: 0 };
+      current.total += record.amount;
+      current.count += 1;
+      totals.set(name, current);
+    });
+
+    els.categoryStatsHint.textContent = selectedMonth === todayISO().slice(0, 7)
+      ? "本月各分类支出"
+      : monthLabel(selectedMonth) + "各分类支出";
+
+    const rows = Array.from(totals.entries())
+      .filter(function (entry) { return entry[1].total > 0; })
+      .sort(function (a, b) { return b[1].total - a[1].total; });
+
+    if (!rows.length) {
+      const empty = document.createElement("div");
+      empty.className = "day-empty";
+      empty.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+          '<path d="M5 19v-8M12 19V5M19 19v-6"/>' +
+        "</svg>" +
+        "<span>这个月还没有支出记录</span>";
+      els.categoryStatsContent.replaceChildren(empty);
+      return;
+    }
+
+    const monthTotal = sumRecords(records);
+    const maxTotal = rows[0][1].total;
+    const list = document.createElement("div");
+    list.className = "category-stats-list";
+
+    rows.forEach(function (entry) {
+      const name = entry[0];
+      const info = entry[1];
+      const cat = categoryInfo(name);
+      const percent = monthTotal ? Math.round((info.total / monthTotal) * 100) : 0;
+      const width = Math.max((info.total / maxTotal) * 100, 2);
+
+      const row = document.createElement("div");
+      row.className = "cat-stat-row";
+      row.setAttribute(
+        "aria-label",
+        name + " 支出 ¥" + money(info.total) + "，共 " + info.count + " 笔，占比 " + percent + "%"
+      );
+
+      const icon = document.createElement("span");
+      icon.className = "cat-stat-icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = cat.emoji;
+
+      const main = document.createElement("div");
+      main.className = "cat-stat-main";
+      const head = document.createElement("div");
+      head.className = "cat-stat-head";
+      const label = document.createElement("span");
+      label.className = "cat-stat-name";
+      label.textContent = name;
+      const percentLabel = document.createElement("span");
+      percentLabel.className = "cat-stat-percent";
+      percentLabel.textContent = percent + "%";
+      head.appendChild(label);
+      head.appendChild(percentLabel);
+      const track = document.createElement("div");
+      track.className = "cat-stat-track";
+      const fill = document.createElement("div");
+      fill.className = "cat-stat-fill";
+      fill.style.width = width + "%";
+      track.appendChild(fill);
+      main.appendChild(head);
+      main.appendChild(track);
+
+      const side = document.createElement("div");
+      side.className = "cat-stat-side";
+      const amount = document.createElement("strong");
+      amount.textContent = "¥" + money(info.total);
+      const count = document.createElement("span");
+      count.textContent = info.count + " 笔";
+      side.appendChild(amount);
+      side.appendChild(count);
+
+      row.appendChild(icon);
+      row.appendChild(main);
+      row.appendChild(side);
+      list.appendChild(row);
+    });
+
+    els.categoryStatsContent.replaceChildren(list);
+  }
+
   /* ---------- Render: selected day ---------- */
   function buildRecordRow(record) {
     const cat = categoryInfo(record.category);
@@ -2205,6 +2395,7 @@
     renderOverview();
     renderTodaySpotlight();
     renderCalendar();
+    renderCategoryStats();
     renderDayDetail();
     renderItemSuggestions();
     updateDateHint();
