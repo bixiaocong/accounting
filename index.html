@@ -50,6 +50,123 @@
     padding: 34px 0 48px;
   }
 
+  /* ---------- App layout & sidebar ---------- */
+  .app {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    flex: 0 0 208px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 22px 14px 18px;
+    border-right: 1px solid rgba(222, 214, 201, 0.9);
+    background: rgba(255, 253, 249, 0.72);
+    backdrop-filter: blur(8px);
+  }
+
+  .side-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 8px 20px;
+  }
+
+  .side-brand .brand-mark {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+
+  .side-brand .brand-mark svg { width: 20px; height: 20px; }
+
+  .side-brand strong {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+
+  .side-brand p {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+  }
+
+  .side-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .side-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 44px;
+    padding: 0 13px;
+    border: 1px solid transparent;
+    border-radius: 13px;
+    color: var(--muted);
+    background: transparent;
+    font-size: 13.5px;
+    font-weight: 500;
+    text-align: left;
+    transition: 0.17s ease;
+  }
+
+  .side-item:hover {
+    color: var(--ink);
+    background: rgba(244, 240, 232, 0.75);
+  }
+
+  .side-item.is-active {
+    border-color: #e8d3c8;
+    color: var(--accent-dark);
+    background: var(--accent-soft);
+  }
+
+  .side-item svg {
+    flex: 0 0 auto;
+    width: 17px;
+    height: 17px;
+  }
+
+  .side-foot {
+    margin-top: auto;
+    padding: 14px 10px 0;
+    border-top: 1px solid var(--line);
+    color: var(--muted-light);
+    font-size: 10.5px;
+    line-height: 1.7;
+  }
+
+  .side-foot code {
+    padding: 1px 4px;
+    border-radius: 4px;
+    color: #8d877b;
+    background: rgba(217, 93, 63, 0.07);
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 10px;
+  }
+
+  .app-main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .view-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+  }
+
   /* ---------- Top bar ---------- */
   .topbar {
     display: flex;
@@ -1338,10 +1455,335 @@
     border: 0;
   }
 
+  /* ---------- Check-in module ---------- */
+  .total-number .total-unit {
+    color: rgba(248, 244, 235, 0.72);
+    font-size: 18px;
+    letter-spacing: 0.04em;
+    transform: translateY(-4px);
+  }
+
+  .weekday-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .weekday-chip {
+    display: inline-flex;
+    align-items: center;
+    height: 31px;
+    padding: 0 10px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--muted);
+    background: #fff;
+    font-size: 11.5px;
+    transition: 0.17s ease;
+  }
+
+  .weekday-chip:hover {
+    border-color: #cdbfae;
+    transform: translateY(-1px);
+  }
+
+  .weekday-chip.is-on {
+    border-color: #e6b3a4;
+    color: var(--accent-dark);
+    background: var(--accent-soft);
+    box-shadow: inset 0 0 0 1px rgba(217, 93, 63, 0.06);
+  }
+
+  .dates-input-row {
+    display: flex;
+    gap: 7px;
+  }
+
+  .dates-input-row .text-input { flex: 1; min-width: 0; }
+
+  .date-add-btn {
+    flex: 0 0 auto;
+    height: 47px;
+    padding: 0 14px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    color: var(--accent-dark);
+    background: #fff;
+    font-size: 12.5px;
+    transition: 0.17s ease;
+  }
+
+  .date-add-btn:hover {
+    border-color: #c9a99a;
+    background: var(--accent-soft);
+  }
+
+  .date-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .date-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 29px;
+    padding: 0 9px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: #5d5f55;
+    background: #f7f3eb;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    transition: 0.17s ease;
+  }
+
+  .date-chip:hover { border-color: #d9a390; color: var(--accent-dark); }
+
+  .date-chip::after {
+    content: "×";
+    color: #b3ab9c;
+    font-size: 13px;
+    line-height: 1;
+  }
+
+  .task-list-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 26px 0 9px;
+    padding: 0 2px;
+  }
+
+  .task-list-head h3 {
+    margin: 0;
+    color: #41433b;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .task-list-head span {
+    color: var(--muted-light);
+    font-size: 10.5px;
+  }
+
+  .task-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .task-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 47px;
+    padding: 7px 8px;
+    border-radius: 12px;
+    transition: background 0.17s ease;
+  }
+
+  .task-row:hover { background: rgba(244, 240, 232, 0.8); }
+
+  .task-dot {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 31px;
+    height: 31px;
+    border-radius: 10px;
+    color: var(--accent-dark);
+    background: var(--accent-soft);
+    font-size: 14px;
+  }
+
+  .task-main { flex: 1; min-width: 0; }
+
+  .task-name {
+    overflow: hidden;
+    color: #34362f;
+    font-size: 13px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .task-schedule {
+    margin-top: 2px;
+    overflow: hidden;
+    color: var(--muted-light);
+    font-size: 10.5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .task-delete {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 27px;
+    height: 27px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    color: #b5b1a7;
+    background: transparent;
+    opacity: 0;
+    transition: 0.17s ease;
+  }
+
+  .task-row:hover .task-delete,
+  .task-delete:focus-visible { opacity: 1; }
+
+  .task-delete:hover { color: #b14a34; background: var(--accent-soft); }
+  .task-delete svg { width: 14px; height: 14px; }
+
+  .checkin-spotlight {
+    background:
+      radial-gradient(circle at 92% 8%, rgba(255, 255, 255, 0.7), transparent 9rem),
+      linear-gradient(135deg, #dce8df 0%, #eef3e8 100%);
+    border-color: #c8dcc9;
+  }
+
+  .checkin-spotlight .today-spotlight-label { color: #427a52; }
+  .checkin-spotlight .today-spotlight-label::before {
+    background: var(--green);
+    box-shadow: 0 0 0 4px rgba(35, 59, 51, 0.1);
+  }
+  .checkin-spotlight .today-spotlight-amount { color: #293b33; }
+  .checkin-spotlight .today-spotlight-amount strong { color: #233b33; }
+
+  .checkin-of {
+    color: #8aa18d;
+    font-size: 15px;
+    margin-left: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .calendar-day.has-tasks { background: #f6f1e8; }
+
+  .calendar-day.is-complete,
+  .calendar-day.is-complete:hover {
+    background: var(--green-soft);
+  }
+
+  .checkin-ratio {
+    width: 100%;
+    margin-top: auto;
+    padding-top: 7px;
+    overflow: hidden;
+    color: var(--accent-dark);
+    font-size: 9.5px;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .calendar-day.is-complete .checkin-ratio { color: var(--green); }
+  .calendar-day.is-selected .checkin-ratio { color: #f0b7a3; }
+
+  .check-row {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-height: 49px;
+    padding: 6px 7px;
+    border: 0;
+    border-radius: 12px;
+    color: inherit;
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.17s ease;
+  }
+
+  .check-row:hover { background: rgba(244, 240, 232, 0.8); }
+
+  .check-box {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    border: 1.5px solid #d3c9b8;
+    border-radius: 50%;
+    color: #fff;
+    background: #fff;
+    transition: 0.17s ease;
+  }
+
+  .check-box svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .check-row.is-done .check-box {
+    border-color: var(--green);
+    background: var(--green);
+  }
+
+  .check-main { flex: 1; min-width: 0; }
+
+  .check-name {
+    overflow: hidden;
+    color: #34362f;
+    font-size: 13px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: color 0.17s ease;
+  }
+
+  .check-sub {
+    margin-top: 2px;
+    overflow: hidden;
+    color: var(--muted-light);
+    font-size: 10.5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .check-row.is-done .check-name {
+    color: #a4a69c;
+    text-decoration: line-through;
+    text-decoration-color: #c9c5b9;
+  }
+
   /* ---------- Responsive ---------- */
   @media (max-width: 880px) {
     .workspace { grid-template-columns: 1fr; }
     .entry-card { position: static; }
+
+    .app { flex-direction: column; }
+    .sidebar {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      width: 100%;
+      height: auto;
+      flex: none;
+      flex-direction: row;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 14px;
+      border-right: 0;
+      border-bottom: 1px solid rgba(222, 214, 201, 0.9);
+      background: rgba(244, 241, 234, 0.92);
+    }
+    .side-brand { margin: 0 6px 0 2px; }
+    .side-brand .brand-mark { width: 32px; height: 32px; border-radius: 10px; }
+    .side-brand .brand-mark svg { width: 17px; height: 17px; }
+    .side-brand p, .side-foot { display: none; }
+    .side-nav { flex-direction: row; gap: 5px; margin-left: auto; }
+    .side-item { height: 36px; padding: 0 11px; border-radius: 10px; font-size: 12.5px; }
+    .side-item svg { width: 15px; height: 15px; }
   }
 
   @media (max-width: 600px) {
@@ -1416,9 +1858,9 @@
 </style>
 </head>
 <body>
-<div class="shell">
-  <header class="topbar">
-    <div class="brand">
+<div class="app">
+  <aside class="sidebar">
+    <div class="side-brand">
       <div class="brand-mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M4.5 8.5h15v10a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-10Z"/>
@@ -1427,11 +1869,33 @@
         </svg>
       </div>
       <div>
-        <h1>小账本</h1>
-        <p>把每一笔，都记得清楚</p>
+        <strong>小账本</strong>
+        <p>记账 · 打卡</p>
       </div>
     </div>
-    <div class="top-actions">
+    <nav class="side-nav" aria-label="功能模块">
+      <button class="side-item is-active" id="navLedger" type="button" data-view="ledger">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4.5 8.5h15v10a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-10Z"/>
+          <path d="M7.5 8.5V6.8a1.8 1.8 0 0 1 2.2-1.75l8.2 1.65a1.8 1.8 0 0 1 1.4 1.75v.05"/>
+        </svg>
+        每日记账
+      </button>
+      <button class="side-item" id="navCheckin" type="button" data-view="checkin">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 11.5 11.5 14 16 9"/><circle cx="12" cy="12" r="8.5"/>
+        </svg>
+        每日打卡
+      </button>
+    </nav>
+    <div class="side-foot">记账和打卡的数据都实时保存在项目目录下的 <code>data.json</code> 文件中。</div>
+  </aside>
+
+  <div class="app-main">
+    <div class="shell">
+      <header class="topbar">
+        <h1 class="view-title" id="viewTitle">每日记账</h1>
+        <div class="top-actions">
       <button class="ghost-btn" id="exportTop" type="button" title="下载 data.json 备份">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
@@ -1458,7 +1922,7 @@
     </div>
   </div>
 
-  <main>
+  <main id="view-ledger">
     <section class="overview" aria-labelledby="monthTitle">
       <div class="overview-main">
         <div>
@@ -1602,12 +2066,141 @@
     </div>
   </main>
 
+  <main id="view-checkin" hidden>
+    <section class="overview" aria-labelledby="checkMonthTitle">
+      <div class="overview-main">
+        <div>
+          <div class="month-row">
+            <span class="month-title" id="checkMonthTitle">本月打卡</span>
+            <div class="month-switch">
+              <button class="icon-btn" id="checkPrevMonth" type="button" aria-label="上个月">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+              </button>
+              <button class="icon-btn" id="checkNextMonth" type="button" aria-label="下个月">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+            </div>
+            <button class="back-today" id="checkBackToMonth" type="button" hidden>回到本月</button>
+          </div>
+
+          <div class="total-wrap">
+            <span class="total-label" id="checkMonthLabel">2026 年 11 月</span>
+            <div class="total-number" aria-live="polite">
+              <span class="value" id="checkMonthTotal">0</span>
+              <span class="total-unit">次</span>
+            </div>
+          </div>
+
+          <div class="overview-meta">
+            <span class="meta-pill"><strong id="checkTaskCount">0</strong> 个任务</span>
+            <span class="meta-pill"><strong id="checkFullDays">0</strong> 天全勤</span>
+            <span class="meta-pill">连续打卡 <strong id="checkStreak">0</strong> 天</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="workspace">
+      <section class="card entry-card" aria-labelledby="taskTitle">
+        <div class="card-heading">
+          <div>
+            <h2 id="taskTitle">任务</h2>
+            <p>添加需要坚持的小任务，按计划打卡</p>
+          </div>
+          <div class="heading-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>
+          </div>
+        </div>
+
+        <form id="taskForm" novalidate>
+          <label class="field" for="taskName">
+            <span class="field-label"><span>任务名称</span></span>
+            <input class="text-input" id="taskName" name="name" type="text" maxlength="40" placeholder="例如：背单词、跑步、喝水" autocomplete="off" required>
+          </label>
+
+          <div class="field">
+            <span class="field-label"><span>重复方式</span></span>
+            <div class="category-grid" id="scheduleGrid" role="radiogroup" aria-label="重复方式"></div>
+          </div>
+
+          <div class="field" id="weekdayField" hidden>
+            <span class="field-label"><span>选择星期</span><span class="field-hint">可多选</span></span>
+            <div class="weekday-grid" id="weekdayGrid"></div>
+          </div>
+
+          <div class="field" id="datesField" hidden>
+            <span class="field-label"><span>选择日期</span><span class="field-hint">可添加多个</span></span>
+            <div class="dates-input-row">
+              <input class="text-input" id="taskDateInput" type="date">
+              <button class="date-add-btn" id="taskDateAdd" type="button">添加</button>
+            </div>
+            <div class="date-chip-list" id="taskDateChips"></div>
+          </div>
+
+          <button class="submit-btn" type="submit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            添加任务
+          </button>
+          <p class="form-note">任务和打卡记录同样写入项目目录下的 <strong>data.json</strong></p>
+        </form>
+
+        <div class="task-list-head">
+          <h3>任务列表</h3>
+          <span id="taskListCount"></span>
+        </div>
+        <ul class="task-list" id="taskList"></ul>
+      </section>
+
+      <section class="card history-card" aria-labelledby="checkHistoryTitle">
+        <div class="history-head">
+          <div>
+            <h2 id="checkHistoryTitle">本月打卡</h2>
+            <p id="checkHistorySubtitle">按日期查看打卡情况</p>
+          </div>
+          <div class="history-total">今日打卡<strong id="checkTodayTotal">0/0</strong></div>
+        </div>
+
+        <div class="today-spotlight checkin-spotlight" aria-label="今日打卡">
+          <div>
+            <div class="today-spotlight-label">今天 <span id="checkSpotlightDate"></span></div>
+            <div class="today-spotlight-amount">
+              <strong id="checkSpotlightDone">0</strong><span class="checkin-of" id="checkSpotlightOf">/ 0</span>
+            </div>
+          </div>
+          <div class="today-spotlight-side">
+            <span class="today-count" id="checkSpotlightHint">今天没有打卡任务</span>
+            <button class="today-link" id="checkViewToday" type="button">查看今天</button>
+          </div>
+        </div>
+
+        <div class="calendar-block">
+          <div class="calendar-head">
+            <h3>打卡日历</h3>
+            <span>点击日期查看当天任务</span>
+          </div>
+          <div class="calendar-grid" id="checkinCalendarContent"></div>
+        </div>
+
+        <div class="day-detail">
+          <div class="day-head day-detail-head">
+            <div class="day-date-wrap">
+              <span class="day-name" id="checkinDayName">今天</span>
+              <span class="day-sub" id="checkinDaySub"></span>
+            </div>
+            <div class="day-sum">完成<strong id="checkinDayTotal">0/0</strong></div>
+          </div>
+          <div id="checkinDayContent"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
   <footer class="footer">
     <div class="storage-note">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M12 3 4.5 6v5.4c0 4.6 3.2 8.2 7.5 9.6 4.3-1.4 7.5-5 7.5-9.6V6L12 3Z"/><path d="m9 12 2 2 4-4"/>
       </svg>
-      <span>数据保存在项目目录下的 <code>data.json</code> 文件中，每次保存都会实时写入。可以用文本编辑器打开，也可以直接复制这个文件做备份。</span>
+      <span>记账和打卡的数据都保存在项目目录下的 <code>data.json</code> 文件中，每次保存都会实时写入。可以用文本编辑器打开，也可以直接复制这个文件做备份。</span>
     </div>
     <div class="footer-actions">
       <a class="text-btn" href="/data.json" target="_blank" rel="noopener">查看 data.json</a>
@@ -1615,6 +2208,8 @@
       <button class="text-btn" id="importBottom" type="button">导入备份</button>
     </div>
   </footer>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite">
@@ -1721,6 +2316,43 @@
     prevMonth: document.getElementById("prevMonth"),
     nextMonth: document.getElementById("nextMonth"),
     backToMonth: document.getElementById("backToMonth"),
+    viewLedger: document.getElementById("view-ledger"),
+    viewCheckin: document.getElementById("view-checkin"),
+    viewTitle: document.getElementById("viewTitle"),
+    navLedger: document.getElementById("navLedger"),
+    navCheckin: document.getElementById("navCheckin"),
+    taskForm: document.getElementById("taskForm"),
+    taskName: document.getElementById("taskName"),
+    scheduleGrid: document.getElementById("scheduleGrid"),
+    weekdayField: document.getElementById("weekdayField"),
+    weekdayGrid: document.getElementById("weekdayGrid"),
+    datesField: document.getElementById("datesField"),
+    taskDateInput: document.getElementById("taskDateInput"),
+    taskDateAdd: document.getElementById("taskDateAdd"),
+    taskDateChips: document.getElementById("taskDateChips"),
+    taskList: document.getElementById("taskList"),
+    taskListCount: document.getElementById("taskListCount"),
+    checkMonthTitle: document.getElementById("checkMonthTitle"),
+    checkMonthLabel: document.getElementById("checkMonthLabel"),
+    checkMonthTotal: document.getElementById("checkMonthTotal"),
+    checkTaskCount: document.getElementById("checkTaskCount"),
+    checkFullDays: document.getElementById("checkFullDays"),
+    checkStreak: document.getElementById("checkStreak"),
+    checkPrevMonth: document.getElementById("checkPrevMonth"),
+    checkNextMonth: document.getElementById("checkNextMonth"),
+    checkBackToMonth: document.getElementById("checkBackToMonth"),
+    checkTodayTotal: document.getElementById("checkTodayTotal"),
+    checkSpotlightDate: document.getElementById("checkSpotlightDate"),
+    checkSpotlightDone: document.getElementById("checkSpotlightDone"),
+    checkSpotlightOf: document.getElementById("checkSpotlightOf"),
+    checkSpotlightHint: document.getElementById("checkSpotlightHint"),
+    checkViewToday: document.getElementById("checkViewToday"),
+    checkHistorySubtitle: document.getElementById("checkHistorySubtitle"),
+    checkinCalendarContent: document.getElementById("checkinCalendarContent"),
+    checkinDayName: document.getElementById("checkinDayName"),
+    checkinDaySub: document.getElementById("checkinDaySub"),
+    checkinDayTotal: document.getElementById("checkinDayTotal"),
+    checkinDayContent: document.getElementById("checkinDayContent"),
     importFile: document.getElementById("importFile"),
     serverBanner: document.getElementById("serverBanner"),
     serverBannerText: document.getElementById("serverBannerText"),
@@ -1728,7 +2360,7 @@
     toastText: document.getElementById("toastText")
   };
 
-  let data = { version: 1, records: [] };
+  let data = { version: 1, records: [], tasks: [], checkins: [] };
   let appReady = false;
   let selectedMonth = todayISO().slice(0, 7);
   let selectedDate = todayISO();
@@ -1737,6 +2369,14 @@
   let editingId = null;
   let lastAddedId = null;
   let toastTimer = null;
+
+  let checkMonth = todayISO().slice(0, 7);
+  let checkDate = todayISO();
+  let currentView = "ledger";
+  let taskSchedule = "daily";
+  let taskWeekdays = new Set();
+  let taskDates = [];
+  let lastAddedTaskId = null;
 
   /* ---------- Date helpers ---------- */
   function pad(n) { return String(n).padStart(2, "0"); }
@@ -1824,11 +2464,33 @@
     return payload;
   }
 
+  function isValidTask(task) {
+    return task &&
+      typeof task === "object" &&
+      typeof task.id === "string" &&
+      typeof task.name === "string" &&
+      task.name.trim().length > 0 &&
+      typeof task.schedule === "string" &&
+      (task.schedule === "daily" || task.schedule === "weekly" || task.schedule === "dates");
+  }
+
+  function isValidCheckin(checkin) {
+    return checkin &&
+      typeof checkin === "object" &&
+      typeof checkin.id === "string" &&
+      typeof checkin.taskId === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(checkin.date);
+  }
+
   function normaliseData(payload) {
     const records = Array.isArray(payload) ? payload : payload && payload.records;
+    const tasks = payload && Array.isArray(payload.tasks) ? payload.tasks.filter(isValidTask) : [];
+    const checkins = payload && Array.isArray(payload.checkins) ? payload.checkins.filter(isValidCheckin) : [];
     return {
       version: 1,
-      records: Array.isArray(records) ? records.filter(isValidRecord) : []
+      records: Array.isArray(records) ? records.filter(isValidRecord) : [],
+      tasks: tasks,
+      checkins: checkins
     };
   }
 
@@ -2391,6 +3053,539 @@
     els.dateHint.textContent = records.length ? "当天已记 ¥" + money(sum) : "当天还未记账";
   }
 
+  /* ---------- Check-in: schedule helpers ---------- */
+  function taskDueOn(task, date) {
+    if (task.schedule === "daily") return true;
+    if (task.schedule === "weekly") {
+      return (task.weekdays || []).indexOf(parseISO(date).getDay()) >= 0;
+    }
+    if (task.schedule === "dates") {
+      return (task.dates || []).indexOf(date) >= 0;
+    }
+    return false;
+  }
+
+  function scheduleText(task) {
+    if (task.schedule === "daily") return "每天";
+    if (task.schedule === "weekly") {
+      const names = (task.weekdays || []).map(function (day) { return WEEKDAYS[day]; });
+      return "每周 " + names.join("、");
+    }
+    const names = (task.dates || []).map(function (iso) {
+      const d = parseISO(iso);
+      return (d.getMonth() + 1) + "月" + d.getDate() + "日";
+    });
+    if (names.length > 3) {
+      return names.slice(0, 3).join("、") + " 等 " + names.length + " 个日期";
+    }
+    return names.join("、");
+  }
+
+  function tasksDueOn(date) {
+    return data.tasks.filter(function (task) { return taskDueOn(task, date); });
+  }
+
+  function doneCount(date) {
+    return data.checkins.filter(function (item) { return item.date === date; }).length;
+  }
+
+  function isTaskDoneOn(task, date) {
+    return data.checkins.some(function (item) {
+      return item.taskId === task.id && item.date === date;
+    });
+  }
+
+  function dayFullyDone(date) {
+    const due = tasksDueOn(date);
+    return due.length > 0 && doneCount(date) === due.length;
+  }
+
+  function monthDatesWithDue(month) {
+    const dates = new Set();
+    const parts = month.split("-").map(Number);
+    const daysInMonth = new Date(parts[0], parts[1], 0).getDate();
+
+    data.tasks.forEach(function (task) {
+      if (task.schedule === "daily") {
+        for (let day = 1; day <= daysInMonth; day += 1) {
+          dates.add(month + "-" + pad(day));
+        }
+      } else if (task.schedule === "weekly") {
+        for (let day = 1; day <= daysInMonth; day += 1) {
+          const date = month + "-" + pad(day);
+          if (taskDueOn(task, date)) dates.add(date);
+        }
+      } else {
+        (task.dates || []).forEach(function (date) {
+          if (date.slice(0, 7) === month) dates.add(date);
+        });
+      }
+    });
+    return dates;
+  }
+
+  function currentStreak() {
+    let streak = 0;
+    const cursor = new Date();
+    if (!dayFullyDone(toISO(cursor))) {
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    while (streak < 3650) {
+      if (!dayFullyDone(toISO(cursor))) break;
+      streak += 1;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    return streak;
+  }
+
+  /* ---------- Check-in: render ---------- */
+  function renderCheckinOverview() {
+    const dates = monthDatesWithDue(checkMonth);
+    let monthDone = 0;
+    let fullDays = 0;
+
+    dates.forEach(function (date) {
+      const due = tasksDueOn(date).length;
+      if (due) {
+        const done = doneCount(date);
+        monthDone += done;
+        if (done === due) fullDays += 1;
+      }
+    });
+
+    els.checkMonthTitle.textContent = checkMonth === todayISO().slice(0, 7) ? "本月打卡" : "当月打卡";
+    els.checkMonthLabel.textContent = monthLabel(checkMonth);
+    els.checkMonthTotal.textContent = monthDone;
+    els.checkTaskCount.textContent = data.tasks.length;
+    els.checkFullDays.textContent = fullDays;
+    els.checkStreak.textContent = currentStreak();
+    els.checkHistorySubtitle.textContent = checkMonth === todayISO().slice(0, 7)
+      ? "按日期查看打卡情况"
+      : "正在查看 " + monthLabel(checkMonth);
+    els.checkBackToMonth.hidden = checkMonth === todayISO().slice(0, 7);
+    els.checkNextMonth.disabled = checkMonth >= todayISO().slice(0, 7);
+    els.checkNextMonth.style.opacity = els.checkNextMonth.disabled ? "0.35" : "";
+    els.checkNextMonth.style.cursor = els.checkNextMonth.disabled ? "default" : "";
+  }
+
+  function renderCheckinSpotlight() {
+    const today = todayISO();
+    const due = tasksDueOn(today);
+    const done = doneCount(today);
+
+    els.checkSpotlightDate.textContent = daySubLabel(today);
+    els.checkSpotlightDone.textContent = done;
+    els.checkSpotlightOf.textContent = "/ " + due.length;
+    els.checkTodayTotal.textContent = done + "/" + due.length;
+    els.checkSpotlightHint.textContent = due.length
+      ? (done === due.length ? "今天全部完成 🎉" : "还剩 " + (due.length - done) + " 个任务")
+      : "今天没有打卡任务";
+  }
+
+  function renderCheckinCalendar() {
+    const today = todayISO();
+    const parts = checkMonth.split("-").map(Number);
+    const year = parts[0];
+    const month = parts[1];
+    const firstDay = new Date(year, month - 1, 1);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const leadingBlanks = (firstDay.getDay() + 6) % 7;
+
+    const fragment = document.createDocumentFragment();
+    ["一", "二", "三", "四", "五", "六", "日"].forEach(function (weekday) {
+      const heading = document.createElement("span");
+      heading.className = "calendar-weekday";
+      heading.textContent = weekday;
+      fragment.appendChild(heading);
+    });
+
+    for (let index = 0; index < leadingBlanks; index += 1) {
+      const blank = document.createElement("span");
+      blank.className = "calendar-day is-blank";
+      blank.setAttribute("aria-hidden", "true");
+      fragment.appendChild(blank);
+    }
+
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const date = checkMonth + "-" + pad(day);
+      const due = tasksDueOn(date).length;
+      const done = due ? doneCount(date) : 0;
+      const isFuture = date > today;
+      const isSelected = date === checkDate;
+      const isComplete = due > 0 && done === due;
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "calendar-day" +
+        (due ? " has-tasks" : "") +
+        (isComplete ? " is-complete" : "") +
+        (date === today ? " is-today" : "") +
+        (isSelected ? " is-selected" : "") +
+        (isFuture ? " is-future" : "");
+      button.disabled = isFuture;
+      button.dataset.date = date;
+      button.setAttribute("aria-pressed", isSelected ? "true" : "false");
+      button.setAttribute(
+        "aria-label",
+        month + "月" + day + "日" +
+        (due ? "，完成 " + done + " / " + due + " 个任务" : "，没有打卡任务")
+      );
+
+      const dateNumber = document.createElement("span");
+      dateNumber.className = "calendar-date";
+      dateNumber.textContent = String(day);
+      button.appendChild(dateNumber);
+
+      if (due) {
+        const ratio = document.createElement("span");
+        ratio.className = "checkin-ratio";
+        ratio.textContent = done + "/" + due;
+        button.appendChild(ratio);
+      }
+
+      if (!isFuture) {
+        button.addEventListener("click", function () {
+          checkDate = date;
+          renderCheckin();
+        });
+      }
+
+      fragment.appendChild(button);
+    }
+
+    const usedCells = leadingBlanks + daysInMonth;
+    const trailingBlanks = (7 - (usedCells % 7)) % 7;
+    for (let index = 0; index < trailingBlanks; index += 1) {
+      const blank = document.createElement("span");
+      blank.className = "calendar-day is-blank";
+      blank.setAttribute("aria-hidden", "true");
+      fragment.appendChild(blank);
+    }
+
+    els.checkinCalendarContent.replaceChildren(fragment);
+  }
+
+  function buildCheckinRow(task, done) {
+    const li = document.createElement("li");
+    li.className = "check-row" + (done ? " is-done" : "");
+
+    const box = document.createElement("span");
+    box.className = "check-box";
+    box.setAttribute("aria-hidden", "true");
+    if (done) {
+      box.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>';
+    }
+
+    const main = document.createElement("span");
+    main.className = "check-main";
+    const name = document.createElement("span");
+    name.className = "check-name";
+    name.textContent = task.name;
+    const sub = document.createElement("span");
+    sub.className = "check-sub";
+    sub.textContent = scheduleText(task);
+    main.appendChild(name);
+    main.appendChild(sub);
+
+    li.appendChild(box);
+    li.appendChild(main);
+    li.addEventListener("click", function () {
+      toggleCheckin(task.id, checkDate, !done);
+    });
+    return li;
+  }
+
+  function renderCheckinDayDetail() {
+    const due = tasksDueOn(checkDate);
+    const done = doneCount(checkDate);
+
+    els.checkinDayName.textContent = dayLabel(checkDate);
+    els.checkinDaySub.textContent = daySubLabel(checkDate);
+    els.checkinDayTotal.textContent = done + "/" + due.length;
+    els.checkinDayContent.innerHTML = "";
+
+    if (!due.length) {
+      const empty = document.createElement("div");
+      empty.className = "day-empty";
+      empty.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+          '<path d="M9 11.5 11.5 14 16 9"/><circle cx="12" cy="12" r="8.5"/>' +
+        "</svg>" +
+        "<span>这一天没有需要打卡的任务</span>";
+      els.checkinDayContent.appendChild(empty);
+      return;
+    }
+
+    const list = document.createElement("ul");
+    list.className = "record-list";
+    due.forEach(function (task) {
+      list.appendChild(buildCheckinRow(task, isTaskDoneOn(task, checkDate)));
+    });
+    els.checkinDayContent.appendChild(list);
+  }
+
+  function renderTaskList() {
+    els.taskListCount.textContent = data.tasks.length + " 个任务";
+    els.taskList.innerHTML = "";
+
+    if (!data.tasks.length) {
+      const empty = document.createElement("div");
+      empty.className = "day-empty";
+      empty.style.minHeight = "72px";
+      empty.innerHTML = "<span>还没有任务，先在上面添加一个吧</span>";
+      els.taskList.appendChild(empty);
+      return;
+    }
+
+    data.tasks.forEach(function (task) {
+      const li = document.createElement("li");
+      li.className = "task-row" + (task.id === lastAddedTaskId ? " is-new" : "");
+
+      const dot = document.createElement("span");
+      dot.className = "task-dot";
+      dot.setAttribute("aria-hidden", "true");
+      dot.textContent = task.schedule === "daily" ? "📅" : task.schedule === "weekly" ? "🔁" : "🗓️";
+
+      const main = document.createElement("div");
+      main.className = "task-main";
+      const name = document.createElement("div");
+      name.className = "task-name";
+      name.textContent = task.name;
+      const schedule = document.createElement("div");
+      schedule.className = "task-schedule";
+      schedule.textContent = scheduleText(task);
+      main.appendChild(name);
+      main.appendChild(schedule);
+
+      const del = document.createElement("button");
+      del.className = "task-delete";
+      del.type = "button";
+      del.setAttribute("aria-label", "删除任务 " + task.name);
+      del.title = "删除任务";
+      del.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+          '<path d="M4 7h16M9.5 7V4.8h5V7M6.5 7l.8 12.2h9.4L17.5 7M10 10.5v5.5M14 10.5v5.5"/>' +
+        "</svg>";
+      del.addEventListener("click", function () { deleteTask(task); });
+
+      li.appendChild(dot);
+      li.appendChild(main);
+      li.appendChild(del);
+      els.taskList.appendChild(li);
+    });
+    lastAddedTaskId = null;
+  }
+
+  function renderScheduleChoices() {
+    const options = [
+      { value: "daily", label: "每天" },
+      { value: "weekly", label: "按周" },
+      { value: "dates", label: "按日期" }
+    ];
+    renderCategoryChoices(els.scheduleGrid, taskSchedule, "task-schedule", function (value) {
+      taskSchedule = value;
+      renderTaskFormState();
+    });
+    renderTaskFormState();
+  }
+
+  function renderWeekdayChips() {
+    const fragment = document.createDocumentFragment();
+    WEEKDAYS.forEach(function (name, day) {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "weekday-chip" + (taskWeekdays.has(day) ? " is-on" : "");
+      chip.setAttribute("aria-pressed", taskWeekdays.has(day) ? "true" : "false");
+      chip.textContent = name;
+      chip.addEventListener("click", function () {
+        if (taskWeekdays.has(day)) {
+          taskWeekdays.delete(day);
+        } else {
+          taskWeekdays.add(day);
+        }
+        renderWeekdayChips();
+      });
+      fragment.appendChild(chip);
+    });
+    els.weekdayGrid.replaceChildren(fragment);
+  }
+
+  function renderDateChips() {
+    els.taskDateChips.innerHTML = "";
+    taskDates.slice().sort().forEach(function (date) {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "date-chip";
+      chip.textContent = date;
+      chip.setAttribute("aria-label", "移除日期 " + date);
+      chip.title = "点击移除";
+      chip.addEventListener("click", function () {
+        taskDates = taskDates.filter(function (item) { return item !== date; });
+        renderDateChips();
+      });
+      els.taskDateChips.appendChild(chip);
+    });
+  }
+
+  function renderTaskFormState() {
+    els.weekdayField.hidden = taskSchedule !== "weekly";
+    els.datesField.hidden = taskSchedule !== "dates";
+  }
+
+  function renderCheckin() {
+    renderCheckinOverview();
+    renderCheckinSpotlight();
+    renderCheckinCalendar();
+    renderCheckinDayDetail();
+    renderTaskList();
+  }
+
+  /* ---------- Check-in: actions ---------- */
+  async function addTask(event) {
+    event.preventDefault();
+
+    if (!appReady) {
+      showToast("还没有连接 data.json，请先启动本地服务");
+      return;
+    }
+
+    const name = els.taskName.value.trim();
+    if (!name) {
+      showToast("请填写任务名称");
+      els.taskName.focus();
+      return;
+    }
+
+    const weekdays = Array.from(taskWeekdays).sort(function (a, b) { return a - b; });
+    const dates = taskDates.slice().sort();
+    if (taskSchedule === "weekly" && !weekdays.length) {
+      showToast("请至少选择一个星期");
+      return;
+    }
+    if (taskSchedule === "dates" && !dates.length) {
+      showToast("请至少添加一个日期");
+      return;
+    }
+
+    const submitButton = els.taskForm.querySelector(".submit-btn");
+    submitButton.disabled = true;
+
+    try {
+      const payload = await requestJSON(API_BASE + "/tasks", {
+        method: "POST",
+        body: JSON.stringify({
+          name: name,
+          schedule: taskSchedule,
+          weekdays: weekdays,
+          dates: dates
+        })
+      });
+
+      if (!payload || !isValidTask(payload.task)) {
+        throw new Error("服务器没有返回有效任务");
+      }
+
+      data.tasks.push(payload.task);
+      lastAddedTaskId = payload.task.id;
+      els.taskName.value = "";
+      taskWeekdays = new Set();
+      taskDates = [];
+      renderTaskFormState();
+      renderWeekdayChips();
+      renderDateChips();
+      renderCheckin();
+      showToast("已添加任务“" + name + "”");
+      els.taskName.focus();
+    } catch (error) {
+      showToast("添加失败：" + error.message);
+    } finally {
+      submitButton.disabled = false;
+    }
+  }
+
+  async function deleteTask(task) {
+    const okay = window.confirm(
+      "确定删除任务“" + task.name + "”吗？\n这个任务的历史打卡记录也会一起删除。"
+    );
+    if (!okay) return;
+
+    try {
+      await requestJSON(API_BASE + "/tasks?id=" + encodeURIComponent(task.id), {
+        method: "DELETE"
+      });
+      data.tasks = data.tasks.filter(function (item) { return item.id !== task.id; });
+      data.checkins = data.checkins.filter(function (item) { return item.taskId !== task.id; });
+      renderCheckin();
+      showToast("任务已删除");
+    } catch (error) {
+      showToast("删除失败：" + error.message);
+    }
+  }
+
+  async function toggleCheckin(taskId, date, checked) {
+    if (!appReady) {
+      showToast("还没有连接 data.json，请先启动本地服务");
+      return;
+    }
+
+    try {
+      const payload = await requestJSON(API_BASE + "/checkins", {
+        method: "POST",
+        body: JSON.stringify({ taskId: taskId, date: date, checked: checked })
+      });
+
+      if (payload.added) {
+        data.checkins.push(payload.checkin);
+      } else if (payload.removed) {
+        data.checkins = data.checkins.filter(function (item) { return item.id !== payload.checkinId; });
+      } else if (checked && payload.checkin) {
+        if (!data.checkins.some(function (item) { return item.taskId === taskId && item.date === date; })) {
+          data.checkins.push(payload.checkin);
+        }
+      }
+      renderCheckin();
+    } catch (error) {
+      showToast("打卡失败：" + error.message);
+    }
+  }
+
+  function selectCheckDateForMonth(month) {
+    const today = todayISO();
+    if (month === today.slice(0, 7)) {
+      checkDate = today;
+      return;
+    }
+    const dates = Array.from(monthDatesWithDue(month)).sort();
+    checkDate = dates.length ? dates[dates.length - 1] : month + "-01";
+  }
+
+  function shiftCheckMonth(delta) {
+    const parts = checkMonth.split("-").map(Number);
+    const date = new Date(parts[0], parts[1] - 1 + delta, 1);
+    const next = date.getFullYear() + "-" + pad(date.getMonth() + 1);
+    if (next > todayISO().slice(0, 7)) return;
+    checkMonth = next;
+    selectCheckDateForMonth(next);
+    renderCheckin();
+  }
+
+  /* ---------- View switching ---------- */
+  function switchView(view) {
+    if (view !== "ledger" && view !== "checkin") return;
+    currentView = view;
+    els.viewLedger.hidden = view !== "ledger";
+    els.viewCheckin.hidden = view !== "checkin";
+    els.viewTitle.textContent = view === "ledger" ? "每日记账" : "每日打卡";
+    els.navLedger.classList.toggle("is-active", view === "ledger");
+    els.navCheckin.classList.toggle("is-active", view === "checkin");
+    if (view === "ledger") {
+      render();
+    } else {
+      renderCheckin();
+    }
+  }
+
   function render() {
     renderOverview();
     renderTodaySpotlight();
@@ -2534,27 +3729,37 @@
       }
 
       const records = Array.isArray(parsed) ? parsed : parsed && parsed.records;
+      const tasks = parsed && Array.isArray(parsed.tasks) ? parsed.tasks : null;
+      const checkins = parsed && Array.isArray(parsed.checkins) ? parsed.checkins : null;
       if (!Array.isArray(records) || !records.length) {
         showToast("没有找到可导入的记账数据");
         return;
       }
 
       const okay = window.confirm(
-        "将导入 " + records.length + " 条记录，并覆盖 data.json 里当前的 " +
-        data.records.length + " 条记录。继续吗？"
+        "将导入 " + records.length + " 条记录" +
+        (tasks ? "、" + tasks.length + " 个任务" : "") +
+        (checkins ? "、" + checkins.length + " 条打卡" : "") +
+        "，并覆盖 data.json 里当前的记账数据。继续吗？"
       );
       if (!okay) return;
 
       try {
+        const requestBody = { records: records };
+        if (tasks) requestBody.tasks = tasks;
+        if (checkins) requestBody.checkins = checkins;
         const payload = await requestJSON(API_BASE + "/import", {
           method: "POST",
-          body: JSON.stringify({ records: records })
+          body: JSON.stringify(requestBody)
         });
         data = normaliseData(payload);
         selectedMonth = todayISO().slice(0, 7);
         selectedDate = todayISO();
+        checkMonth = todayISO().slice(0, 7);
+        checkDate = todayISO();
         render();
-        showToast("已导入 " + data.records.length + " 条记录到 data.json");
+        renderCheckin();
+        showToast("已导入到 data.json");
       } catch (error) {
         showToast("导入失败：" + error.message);
       }
@@ -2598,6 +3803,7 @@
       selectedMonth = todayISO().slice(0, 7);
       selectedDate = todayISO();
       render();
+      renderCheckin();
       showToast("旧记录已迁移到 data.json");
     } catch (error) {
       showToast("迁移失败：" + error.message);
@@ -2614,10 +3820,15 @@
       : "请确认本地服务正在运行：在项目目录执行 <code>python3 server.py</code>，然后刷新 <code>http://127.0.0.1:8765</code>。";
     const submitButton = els.form.querySelector(".submit-btn");
     if (submitButton) submitButton.disabled = true;
+    const taskSubmitButton = els.taskForm.querySelector(".submit-btn");
+    if (taskSubmitButton) taskSubmitButton.disabled = true;
   }
 
   async function init() {
     renderCategories();
+    renderScheduleChoices();
+    renderWeekdayChips();
+    renderDateChips();
     els.date.value = todayISO();
     els.item.value = selectedCategory;
 
@@ -2634,7 +3845,48 @@
       selectedMonth = todayISO().slice(0, 7);
       selectedDate = todayISO();
       render();
-      document.querySelector(".day-detail").scrollIntoView({
+      document.querySelector("#view-ledger .day-detail").scrollIntoView({
+        behavior: "smooth",
+        block: "nearest"
+      });
+    });
+
+    els.navLedger.addEventListener("click", function () { switchView("ledger"); });
+    els.navCheckin.addEventListener("click", function () { switchView("checkin"); });
+
+    els.taskForm.addEventListener("submit", addTask);
+    els.taskName.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        els.taskForm.requestSubmit();
+      }
+    });
+    els.taskDateAdd.addEventListener("click", function () {
+      const value = els.taskDateInput.value;
+      if (!value) {
+        showToast("请先选择日期");
+        return;
+      }
+      if (taskDates.indexOf(value) >= 0) {
+        showToast("这个日期已经添加过了");
+        return;
+      }
+      taskDates.push(value);
+      els.taskDateInput.value = "";
+      renderDateChips();
+    });
+    els.checkPrevMonth.addEventListener("click", function () { shiftCheckMonth(-1); });
+    els.checkNextMonth.addEventListener("click", function () { shiftCheckMonth(1); });
+    els.checkBackToMonth.addEventListener("click", function () {
+      checkMonth = todayISO().slice(0, 7);
+      checkDate = todayISO();
+      renderCheckin();
+    });
+    els.checkViewToday.addEventListener("click", function () {
+      checkMonth = todayISO().slice(0, 7);
+      checkDate = todayISO();
+      renderCheckin();
+      document.querySelector("#view-checkin .day-detail").scrollIntoView({
         behavior: "smooth",
         block: "nearest"
       });
@@ -2668,13 +3920,17 @@
     const submitButton = els.form.querySelector(".submit-btn");
     submitButton.disabled = true;
     render();
+    renderCheckin();
 
     try {
       data = await loadData();
       appReady = true;
       submitButton.disabled = false;
+      const taskSubmitButton = els.taskForm.querySelector(".submit-btn");
+      if (taskSubmitButton) taskSubmitButton.disabled = false;
       els.serverBanner.hidden = true;
       render();
+      renderCheckin();
       await offerLegacyMigration();
     } catch (error) {
       showServerError(error);

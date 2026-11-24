@@ -25,6 +25,8 @@ DEFAULT_PORT = 8765
 MAX_BODY_BYTES = 6 * 1024 * 1024
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 CATEGORIES = {"餐饮", "交通", "购物", "学习", "居住", "娱乐", "医疗", "其他"}
+TASK_SCHEDULES = {"daily", "weekly", "dates"}
+WEEKDAYS = set(range(7))
 DATA_LOCK = threading.RLock()
 
 
@@ -40,7 +42,7 @@ def now_ms() -> int:
 
 
 def empty_data() -> dict:
-    return {"version": 1, "records": []}
+    return {"version": 1, "records": [], "tasks": [], "checkins": []}
 
 
 def valid_date(value: str) -> bool:
@@ -113,6 +115,93 @@ def normalise_records(raw_records: object) -> list[dict]:
     return records
 
 
+def normalise_task(raw: object) -> dict:
+    if not isinstance(raw, dict):
+        raise ApiError(400, "任务格式不正确")
+
+    name = str(raw.get("name", "")).strip()
+    if not name:
+        raise ApiError(400, "任务名称不能为空")
+    name = name[:40]
+
+    schedule = str(raw.get("schedule", "daily")).strip()
+    if schedule not in TASK_SCHEDULES:
+        schedule = "daily"
+
+    weekdays: list[int] = []
+    raw_weekdays = raw.get("weekdays", [])
+    if isinstance(raw_weekdays, list):
+        for value in raw_weekdays:
+            try:
+                day = int(value)
+            except (TypeError, ValueError):
+                continue
+            if day in WEEKDAYS and day not in weekdays:
+                weekdays.append(day)
+    weekdays.sort()
+
+    dates: list[str] = []
+    raw_dates = raw.get("dates", [])
+    if isinstance(raw_dates, list):
+        for value in raw_dates:
+            text = str(value).strip()
+            if valid_date(text) and text not in dates:
+                dates.append(text)
+    dates.sort()
+
+    if schedule == "weekly" and not weekdays:
+        raise ApiError(400, "按周重复的任务至少选择一天")
+    if schedule == "dates" and not dates:
+        raise ApiError(400, "按日期重复的任务至少选择一个日期")
+
+    task_id = str(raw.get("id") or uuid.uuid4())
+    if not task_id or len(task_id) > 100:
+        task_id = str(uuid.uuid4())
+
+    try:
+        created_at = int(raw.get("createdAt") or now_ms())
+    except (TypeError, ValueError):
+        created_at = now_ms()
+
+    return {
+        "id": task_id,
+        "name": name,
+        "schedule": schedule,
+        "weekdays": weekdays,
+        "dates": dates,
+        "createdAt": created_at,
+    }
+
+
+def normalise_checkin(raw: object) -> dict:
+    if not isinstance(raw, dict):
+        raise ApiError(400, "打卡记录格式不正确")
+
+    task_id = str(raw.get("taskId", "")).strip()
+    if not task_id:
+        raise ApiError(400, "打卡记录缺少任务 id")
+
+    checkin_date = str(raw.get("date", "")).strip()
+    if not valid_date(checkin_date):
+        raise ApiError(400, "打卡日期格式必须为 YYYY-MM-DD")
+
+    checkin_id = str(raw.get("id") or uuid.uuid4())
+    if not checkin_id or len(checkin_id) > 100:
+        checkin_id = str(uuid.uuid4())
+
+    try:
+        created_at = int(raw.get("createdAt") or now_ms())
+    except (TypeError, ValueError):
+        created_at = now_ms()
+
+    return {
+        "id": checkin_id,
+        "taskId": task_id,
+        "date": checkin_date,
+        "createdAt": created_at,
+    }
+
+
 def read_data_locked() -> dict:
     if not DATA_FILE.exists():
         return empty_data()
@@ -125,28 +214,39 @@ def read_data_locked() -> dict:
 
     if isinstance(payload, list):
         raw_records = payload
+        raw_tasks: list = []
+        raw_checkins: list = []
     elif isinstance(payload, dict):
         raw_records = payload.get("records", [])
+        raw_tasks = payload.get("tasks", [])
+        raw_checkins = payload.get("checkins", [])
     else:
         raise ApiError(500, "data.json 的格式不正确")
 
     if not isinstance(raw_records, list):
         raise ApiError(500, "data.json 里的 records 必须是数组")
+    if not isinstance(raw_tasks, list):
+        raw_tasks = []
+    if not isinstance(raw_checkins, list):
+        raw_checkins = []
 
     records = [normalise_record(record) for record in raw_records]
     records.sort(key=lambda record: (record["date"], record["createdAt"]))
-    return {"version": 1, "records": records}
+    tasks = [normalise_task(task) for task in raw_tasks]
+    tasks.sort(key=lambda task: task["createdAt"])
+    checkins = [normalise_checkin(item) for item in raw_checkins]
+    checkins.sort(key=lambda item: (item["date"], item["createdAt"]))
+    return {"version": 1, "records": records, "tasks": tasks, "checkins": checkins}
 
 
-def write_data_locked(records: list[dict]) -> None:
-    payload = {"version": 1, "records": records}
+def write_data_locked(data: dict) -> None:
     temp_path = None
     try:
         fd, temp_path = tempfile.mkstemp(
             prefix=".data-", suffix=".tmp", dir=str(ROOT)
         )
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
-            json.dump(payload, handle, ensure_ascii=False, indent=2)
+            json.dump(data, handle, ensure_ascii=False, indent=2)
             handle.write("\n")
             handle.flush()
             os.fsync(handle.fileno())
@@ -160,15 +260,17 @@ def write_data_locked(records: list[dict]) -> None:
 def ensure_data_file() -> None:
     with DATA_LOCK:
         if not DATA_FILE.exists():
-            write_data_locked([])
+            write_data_locked(empty_data())
 
 
-def backup_payload(records: list[dict]) -> dict:
+def backup_payload(data: dict) -> dict:
     return {
         "app": "小账本",
         "version": 1,
         "exportedAt": datetime.now().astimezone().isoformat(timespec="seconds"),
-        "records": records,
+        "records": data["records"],
+        "tasks": data["tasks"],
+        "checkins": data["checkins"],
     }
 
 
@@ -228,9 +330,9 @@ class LedgerHandler(SimpleHTTPRequestHandler):
 
             if path == "/api/backup":
                 with DATA_LOCK:
-                    records = read_data_locked()["records"]
+                    data = read_data_locked()
                 body = json.dumps(
-                    backup_payload(records), ensure_ascii=False, indent=2
+                    backup_payload(data), ensure_ascii=False, indent=2
                 ).encode("utf-8")
                 filename = f"ledger-backup-{date.today().isoformat()}.json"
                 self.send_response(200)
@@ -284,23 +386,118 @@ class LedgerHandler(SimpleHTTPRequestHandler):
                 record["id"] = str(uuid.uuid4())
                 record["createdAt"] = now_ms()
                 with DATA_LOCK:
-                    records = read_data_locked()["records"]
+                    data = read_data_locked()
+                    records = data["records"]
                     records.append(record)
                     records.sort(
                         key=lambda item: (item["date"], item["createdAt"])
                     )
-                    write_data_locked(records)
+                    data["records"] = records
+                    write_data_locked(data)
                 self.send_json(201, {"record": record})
                 return
 
+            if path == "/api/tasks":
+                if not isinstance(body, dict):
+                    raise ApiError(400, "任务格式不正确")
+                task = normalise_task(body)
+                task["id"] = str(uuid.uuid4())
+                task["createdAt"] = now_ms()
+                with DATA_LOCK:
+                    data = read_data_locked()
+                    data["tasks"].append(task)
+                    data["tasks"].sort(key=lambda item: item["createdAt"])
+                    write_data_locked(data)
+                self.send_json(201, {"task": task})
+                return
+
+            if path == "/api/checkins":
+                if not isinstance(body, dict):
+                    raise ApiError(400, "打卡记录格式不正确")
+                task_id = str(body.get("taskId", "")).strip()
+                checkin_date = str(body.get("date", "")).strip()
+                checked = bool(body.get("checked"))
+                if not task_id:
+                    raise ApiError(400, "缺少任务 id")
+                if not valid_date(checkin_date):
+                    raise ApiError(400, "打卡日期格式必须为 YYYY-MM-DD")
+
+                with DATA_LOCK:
+                    data = read_data_locked()
+                    if not any(task["id"] == task_id for task in data["tasks"]):
+                        raise ApiError(404, "没有找到这个任务")
+                    existing = next(
+                        (
+                            item
+                            for item in data["checkins"]
+                            if item["taskId"] == task_id and item["date"] == checkin_date
+                        ),
+                        None,
+                    )
+                    if checked and existing is None:
+                        checkin = {
+                            "id": str(uuid.uuid4()),
+                            "taskId": task_id,
+                            "date": checkin_date,
+                            "createdAt": now_ms(),
+                        }
+                        data["checkins"].append(checkin)
+                        data["checkins"].sort(
+                            key=lambda item: (item["date"], item["createdAt"])
+                        )
+                        write_data_locked(data)
+                        self.send_json(200, {"added": True, "checkin": checkin})
+                        return
+                    if not checked and existing is not None:
+                        data["checkins"] = [
+                            item
+                            for item in data["checkins"]
+                            if not (item["taskId"] == task_id and item["date"] == checkin_date)
+                        ]
+                        write_data_locked(data)
+                        self.send_json(
+                            200, {"removed": True, "checkinId": existing["id"]}
+                        )
+                        return
+                    self.send_json(200, {"changed": False, "checkin": existing})
+                return
+
             if path == "/api/import":
-                raw_records = body.get("records") if isinstance(body, dict) else body
+                if isinstance(body, dict):
+                    raw_records = body.get("records", [])
+                    raw_tasks = body.get("tasks")
+                    raw_checkins = body.get("checkins")
+                else:
+                    raw_records = body
+                    raw_tasks = None
+                    raw_checkins = None
                 records = normalise_records(raw_records)
                 with DATA_LOCK:
-                    write_data_locked(records)
+                    current = read_data_locked()
+                    if isinstance(raw_tasks, list):
+                        tasks = [normalise_task(task) for task in raw_tasks]
+                    else:
+                        tasks = current["tasks"]
+                    if isinstance(raw_checkins, list):
+                        checkins = [normalise_checkin(item) for item in raw_checkins]
+                    else:
+                        checkins = current["checkins"]
+                    payload = {
+                        "version": 1,
+                        "records": records,
+                        "tasks": tasks,
+                        "checkins": checkins,
+                    }
+                    write_data_locked(payload)
                 self.send_json(
                     200,
-                    {"version": 1, "records": records, "imported": len(records)},
+                    {
+                        "version": 1,
+                        "records": records,
+                        "tasks": tasks,
+                        "checkins": checkins,
+                        "imported": len(records),
+                    },
                 )
                 return
 
@@ -314,21 +511,43 @@ class LedgerHandler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
 
         try:
-            if parsed.path != "/api/records":
-                raise ApiError(404, "接口不存在")
+            if parsed.path == "/api/records":
+                record_id = parse_qs(parsed.query).get("id", [""])[0]
+                if not record_id:
+                    raise ApiError(400, "缺少记录 id")
 
-            record_id = parse_qs(parsed.query).get("id", [""])[0]
-            if not record_id:
-                raise ApiError(400, "缺少记录 id")
+                with DATA_LOCK:
+                    data = read_data_locked()
+                    records = data["records"]
+                    remaining = [record for record in records if record["id"] != record_id]
+                    if len(remaining) == len(records):
+                        raise ApiError(404, "没有找到这条记录")
+                    data["records"] = remaining
+                    write_data_locked(data)
 
-            with DATA_LOCK:
-                records = read_data_locked()["records"]
-                remaining = [record for record in records if record["id"] != record_id]
-                if len(remaining) == len(records):
-                    raise ApiError(404, "没有找到这条记录")
-                write_data_locked(remaining)
+                self.send_json(200, {"deleted": record_id})
+                return
 
-            self.send_json(200, {"deleted": record_id})
+            if parsed.path == "/api/tasks":
+                task_id = parse_qs(parsed.query).get("id", [""])[0]
+                if not task_id:
+                    raise ApiError(400, "缺少任务 id")
+
+                with DATA_LOCK:
+                    data = read_data_locked()
+                    remaining = [task for task in data["tasks"] if task["id"] != task_id]
+                    if len(remaining) == len(data["tasks"]):
+                        raise ApiError(404, "没有找到这个任务")
+                    data["tasks"] = remaining
+                    data["checkins"] = [
+                        item for item in data["checkins"] if item["taskId"] != task_id
+                    ]
+                    write_data_locked(data)
+
+                self.send_json(200, {"deleted": task_id})
+                return
+
+            raise ApiError(404, "接口不存在")
         except ApiError as error:
             self.send_api_error(error)
         except Exception as error:  # noqa: BLE001
