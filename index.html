@@ -1494,6 +1494,40 @@
     box-shadow: inset 0 0 0 1px rgba(217, 93, 63, 0.06);
   }
 
+  .monthday-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .monthday-chip {
+    display: grid;
+    place-items: center;
+    height: 32px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    color: var(--muted);
+    background: #fff;
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+    transition: 0.17s ease;
+  }
+
+  .monthday-chip:hover {
+    border-color: #cdbfae;
+    transform: translateY(-1px);
+  }
+
+  .monthday-chip.is-on {
+    border-color: #e6b3a4;
+    color: var(--accent-dark);
+    background: var(--accent-soft);
+    box-shadow: inset 0 0 0 1px rgba(217, 93, 63, 0.06);
+  }
+
+  .add-task-btn { margin-bottom: 6px; }
+
   .dates-input-row {
     display: flex;
     gap: 7px;
@@ -2112,37 +2146,10 @@
           </div>
         </div>
 
-        <form id="taskForm" novalidate>
-          <label class="field" for="taskName">
-            <span class="field-label"><span>任务名称</span></span>
-            <input class="text-input" id="taskName" name="name" type="text" maxlength="40" placeholder="例如：背单词、跑步、喝水" autocomplete="off" required>
-          </label>
-
-          <div class="field">
-            <span class="field-label"><span>重复方式</span></span>
-            <div class="category-grid" id="scheduleGrid" role="radiogroup" aria-label="重复方式"></div>
-          </div>
-
-          <div class="field" id="weekdayField" hidden>
-            <span class="field-label"><span>选择星期</span><span class="field-hint">可多选</span></span>
-            <div class="weekday-grid" id="weekdayGrid"></div>
-          </div>
-
-          <div class="field" id="datesField" hidden>
-            <span class="field-label"><span>选择日期</span><span class="field-hint">可添加多个</span></span>
-            <div class="dates-input-row">
-              <input class="text-input" id="taskDateInput" type="date">
-              <button class="date-add-btn" id="taskDateAdd" type="button">添加</button>
-            </div>
-            <div class="date-chip-list" id="taskDateChips"></div>
-          </div>
-
-          <button class="submit-btn" type="submit">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-            添加任务
-          </button>
-          <p class="form-note">任务和打卡记录同样写入项目目录下的 <strong>data.json</strong></p>
-        </form>
+        <button class="submit-btn add-task-btn" id="openTaskDialog" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          添加任务
+        </button>
 
         <div class="task-list-head">
           <h3>任务列表</h3>
@@ -2259,6 +2266,50 @@
   </form>
 </dialog>
 
+<dialog class="edit-dialog task-dialog" id="taskDialog" aria-labelledby="taskDialogTitle">
+  <form class="edit-form" id="taskDialogForm" novalidate>
+    <div class="edit-head">
+      <div>
+        <h2 id="taskDialogTitle">添加任务</h2>
+        <p>选好重复方式，任务会按计划出现在打卡日历里。</p>
+      </div>
+      <button class="dialog-close" id="taskDialogClose" type="button" aria-label="关闭">×</button>
+    </div>
+
+    <div class="edit-fields">
+      <label class="field" for="taskDialogName">
+        <span class="field-label"><span>任务名称</span></span>
+        <input class="text-input" id="taskDialogName" name="name" type="text" maxlength="40" placeholder="例如：背单词、跑步、喝水" autocomplete="off" required>
+      </label>
+
+      <div class="field">
+        <span class="field-label"><span>重复方式</span></span>
+        <div class="category-grid schedule-grid" id="taskScheduleGrid" role="radiogroup" aria-label="重复方式"></div>
+      </div>
+
+      <div class="field" id="taskWeekdayField" hidden>
+        <span class="field-label"><span>选择星期几</span><span class="field-hint">可多选</span></span>
+        <div class="weekday-grid" id="taskWeekdayGrid"></div>
+      </div>
+
+      <div class="field" id="taskMonthdayField" hidden>
+        <span class="field-label"><span>选择每月几号</span><span class="field-hint">可多选</span></span>
+        <div class="monthday-grid" id="taskMonthdayGrid"></div>
+      </div>
+
+      <div class="field" id="taskOnceField" hidden>
+        <span class="field-label"><span>选择日期</span><span class="field-hint">只在当天打卡</span></span>
+        <input class="text-input" id="taskOnceDate" type="date" required>
+      </div>
+    </div>
+
+    <div class="edit-actions">
+      <button class="dialog-secondary" id="taskDialogCancel" type="button">取消</button>
+      <button class="dialog-primary" id="taskDialogSave" type="submit">添加任务</button>
+    </div>
+  </form>
+</dialog>
+
 <script>
 (function () {
   "use strict";
@@ -2321,15 +2372,20 @@
     viewTitle: document.getElementById("viewTitle"),
     navLedger: document.getElementById("navLedger"),
     navCheckin: document.getElementById("navCheckin"),
-    taskForm: document.getElementById("taskForm"),
-    taskName: document.getElementById("taskName"),
-    scheduleGrid: document.getElementById("scheduleGrid"),
-    weekdayField: document.getElementById("weekdayField"),
-    weekdayGrid: document.getElementById("weekdayGrid"),
-    datesField: document.getElementById("datesField"),
-    taskDateInput: document.getElementById("taskDateInput"),
-    taskDateAdd: document.getElementById("taskDateAdd"),
-    taskDateChips: document.getElementById("taskDateChips"),
+    openTaskDialog: document.getElementById("openTaskDialog"),
+    taskDialog: document.getElementById("taskDialog"),
+    taskDialogForm: document.getElementById("taskDialogForm"),
+    taskDialogClose: document.getElementById("taskDialogClose"),
+    taskDialogCancel: document.getElementById("taskDialogCancel"),
+    taskDialogSave: document.getElementById("taskDialogSave"),
+    taskDialogName: document.getElementById("taskDialogName"),
+    taskScheduleGrid: document.getElementById("taskScheduleGrid"),
+    taskWeekdayField: document.getElementById("taskWeekdayField"),
+    taskWeekdayGrid: document.getElementById("taskWeekdayGrid"),
+    taskMonthdayField: document.getElementById("taskMonthdayField"),
+    taskMonthdayGrid: document.getElementById("taskMonthdayGrid"),
+    taskOnceField: document.getElementById("taskOnceField"),
+    taskOnceDate: document.getElementById("taskOnceDate"),
     taskList: document.getElementById("taskList"),
     taskListCount: document.getElementById("taskListCount"),
     checkMonthTitle: document.getElementById("checkMonthTitle"),
@@ -2375,7 +2431,8 @@
   let currentView = "ledger";
   let taskSchedule = "daily";
   let taskWeekdays = new Set();
-  let taskDates = [];
+  let taskMonthDays = new Set();
+  let taskOnceDate = todayISO();
   let lastAddedTaskId = null;
 
   /* ---------- Date helpers ---------- */
@@ -2471,7 +2528,8 @@
       typeof task.name === "string" &&
       task.name.trim().length > 0 &&
       typeof task.schedule === "string" &&
-      (task.schedule === "daily" || task.schedule === "weekly" || task.schedule === "dates");
+      (task.schedule === "daily" || task.schedule === "weekly" ||
+       task.schedule === "monthly" || task.schedule === "once");
   }
 
   function isValidCheckin(checkin) {
@@ -2515,24 +2573,30 @@
     return CATEGORIES.find(function (item) { return item.name === name; }) || CATEGORIES[CATEGORIES.length - 1];
   }
 
-  /* ---------- Render: category chips ---------- */
-  function renderCategoryChoices(container, selected, inputName, onSelect) {
+  /* ---------- Render: choice chips ---------- */
+  function renderChoiceChips(container, options, selected, inputName, onSelect) {
     const fragment = document.createDocumentFragment();
-    CATEGORIES.forEach(function (cat) {
+    options.forEach(function (option) {
       const label = document.createElement("label");
       label.className = "category-chip";
       label.innerHTML =
-        '<input type="radio" name="' + escapeHTML(inputName) + '" value="' + escapeHTML(cat.name) + '">' +
-        '<span class="emoji" aria-hidden="true">' + cat.emoji + "</span>" +
-        "<span>" + escapeHTML(cat.name) + "</span>";
+        '<input type="radio" name="' + escapeHTML(inputName) + '" value="' + escapeHTML(option.value) + '">' +
+        (option.emoji ? '<span class="emoji" aria-hidden="true">' + option.emoji + "</span>" : "") +
+        "<span>" + escapeHTML(option.label) + "</span>";
       const input = label.querySelector("input");
-      input.checked = cat.name === selected;
+      input.checked = option.value === selected;
       input.addEventListener("change", function () {
-        onSelect(cat.name);
+        onSelect(option.value);
       });
       fragment.appendChild(label);
     });
     container.replaceChildren(fragment);
+  }
+
+  function renderCategoryChoices(container, selected, inputName, onSelect) {
+    renderChoiceChips(container, CATEGORIES.map(function (cat) {
+      return { value: cat.name, label: cat.name, emoji: cat.emoji };
+    }), selected, inputName, onSelect);
   }
 
   function isCategoryName(value) {
@@ -3059,8 +3123,11 @@
     if (task.schedule === "weekly") {
       return (task.weekdays || []).indexOf(parseISO(date).getDay()) >= 0;
     }
-    if (task.schedule === "dates") {
-      return (task.dates || []).indexOf(date) >= 0;
+    if (task.schedule === "monthly") {
+      return (task.days || []).indexOf(parseISO(date).getDate()) >= 0;
+    }
+    if (task.schedule === "once") {
+      return task.date === date;
     }
     return false;
   }
@@ -3071,14 +3138,12 @@
       const names = (task.weekdays || []).map(function (day) { return WEEKDAYS[day]; });
       return "每周 " + names.join("、");
     }
-    const names = (task.dates || []).map(function (iso) {
-      const d = parseISO(iso);
-      return (d.getMonth() + 1) + "月" + d.getDate() + "日";
-    });
-    if (names.length > 3) {
-      return names.slice(0, 3).join("、") + " 等 " + names.length + " 个日期";
+    if (task.schedule === "monthly") {
+      const names = (task.days || []).map(function (day) { return day + "日"; });
+      return "每月 " + names.join("、");
     }
-    return names.join("、");
+    const d = parseISO(task.date);
+    return "仅 " + (d.getMonth() + 1) + "月" + d.getDate() + "日";
   }
 
   function tasksDueOn(date) {
@@ -3115,10 +3180,13 @@
           const date = month + "-" + pad(day);
           if (taskDueOn(task, date)) dates.add(date);
         }
+      } else if (task.schedule === "monthly") {
+        for (let day = 1; day <= daysInMonth; day += 1) {
+          const date = month + "-" + pad(day);
+          if (taskDueOn(task, date)) dates.add(date);
+        }
       } else {
-        (task.dates || []).forEach(function (date) {
-          if (date.slice(0, 7) === month) dates.add(date);
-        });
+        if ((task.date || "").slice(0, 7) === month) dates.add(task.date);
       }
     });
     return dates;
@@ -3345,7 +3413,10 @@
       const dot = document.createElement("span");
       dot.className = "task-dot";
       dot.setAttribute("aria-hidden", "true");
-      dot.textContent = task.schedule === "daily" ? "📅" : task.schedule === "weekly" ? "🔁" : "🗓️";
+      dot.textContent = task.schedule === "daily" ? "📅"
+        : task.schedule === "weekly" ? "🔁"
+        : task.schedule === "monthly" ? "📆"
+        : "🎯";
 
       const main = document.createElement("div");
       main.className = "task-main";
@@ -3377,20 +3448,21 @@
     lastAddedTaskId = null;
   }
 
-  function renderScheduleChoices() {
+  function renderTaskScheduleChoices() {
     const options = [
       { value: "daily", label: "每天" },
-      { value: "weekly", label: "按周" },
-      { value: "dates", label: "按日期" }
+      { value: "weekly", label: "每周" },
+      { value: "monthly", label: "每月" },
+      { value: "once", label: "不重复" }
     ];
-    renderCategoryChoices(els.scheduleGrid, taskSchedule, "task-schedule", function (value) {
+    renderChoiceChips(els.taskScheduleGrid, options, taskSchedule, "task-schedule", function (value) {
       taskSchedule = value;
-      renderTaskFormState();
+      renderTaskDialogState();
     });
-    renderTaskFormState();
+    renderTaskDialogState();
   }
 
-  function renderWeekdayChips() {
+  function renderTaskWeekdayChips() {
     const fragment = document.createDocumentFragment();
     WEEKDAYS.forEach(function (name, day) {
       const chip = document.createElement("button");
@@ -3404,33 +3476,70 @@
         } else {
           taskWeekdays.add(day);
         }
-        renderWeekdayChips();
+        renderTaskWeekdayChips();
       });
       fragment.appendChild(chip);
     });
-    els.weekdayGrid.replaceChildren(fragment);
+    els.taskWeekdayGrid.replaceChildren(fragment);
   }
 
-  function renderDateChips() {
-    els.taskDateChips.innerHTML = "";
-    taskDates.slice().sort().forEach(function (date) {
+  function renderTaskMonthdayChips() {
+    const fragment = document.createDocumentFragment();
+    for (let day = 1; day <= 31; day += 1) {
       const chip = document.createElement("button");
       chip.type = "button";
-      chip.className = "date-chip";
-      chip.textContent = date;
-      chip.setAttribute("aria-label", "移除日期 " + date);
-      chip.title = "点击移除";
+      chip.className = "monthday-chip" + (taskMonthDays.has(day) ? " is-on" : "");
+      chip.setAttribute("aria-pressed", taskMonthDays.has(day) ? "true" : "false");
+      chip.textContent = String(day);
       chip.addEventListener("click", function () {
-        taskDates = taskDates.filter(function (item) { return item !== date; });
-        renderDateChips();
+        if (taskMonthDays.has(day)) {
+          taskMonthDays.delete(day);
+        } else {
+          taskMonthDays.add(day);
+        }
+        renderTaskMonthdayChips();
       });
-      els.taskDateChips.appendChild(chip);
+      fragment.appendChild(chip);
+    }
+    els.taskMonthdayGrid.replaceChildren(fragment);
+  }
+
+  function renderTaskDialogState() {
+    els.taskWeekdayField.hidden = taskSchedule !== "weekly";
+    els.taskMonthdayField.hidden = taskSchedule !== "monthly";
+    els.taskOnceField.hidden = taskSchedule !== "once";
+  }
+
+  function openTaskDialog() {
+    taskSchedule = "daily";
+    taskWeekdays = new Set();
+    taskMonthDays = new Set();
+    taskOnceDate = todayISO();
+    els.taskDialogName.value = "";
+    els.taskOnceDate.value = todayISO();
+    els.taskDialogSave.disabled = false;
+    els.taskDialogSave.textContent = "添加任务";
+    renderTaskScheduleChoices();
+    renderTaskWeekdayChips();
+    renderTaskMonthdayChips();
+
+    if (typeof els.taskDialog.showModal === "function") {
+      els.taskDialog.showModal();
+    } else {
+      els.taskDialog.setAttribute("open", "");
+    }
+
+    window.requestAnimationFrame(function () {
+      els.taskDialogName.focus();
     });
   }
 
-  function renderTaskFormState() {
-    els.weekdayField.hidden = taskSchedule !== "weekly";
-    els.datesField.hidden = taskSchedule !== "dates";
+  function closeTaskDialog() {
+    if (els.taskDialog.open && typeof els.taskDialog.close === "function") {
+      els.taskDialog.close();
+    } else {
+      els.taskDialog.removeAttribute("open");
+    }
   }
 
   function renderCheckin() {
@@ -3450,26 +3559,33 @@
       return;
     }
 
-    const name = els.taskName.value.trim();
+    const name = els.taskDialogName.value.trim();
     if (!name) {
       showToast("请填写任务名称");
-      els.taskName.focus();
+      els.taskDialogName.focus();
       return;
     }
 
     const weekdays = Array.from(taskWeekdays).sort(function (a, b) { return a - b; });
-    const dates = taskDates.slice().sort();
+    const days = Array.from(taskMonthDays).sort(function (a, b) { return a - b; });
+    const onceDate = els.taskOnceDate.value;
+
     if (taskSchedule === "weekly" && !weekdays.length) {
       showToast("请至少选择一个星期");
       return;
     }
-    if (taskSchedule === "dates" && !dates.length) {
-      showToast("请至少添加一个日期");
+    if (taskSchedule === "monthly" && !days.length) {
+      showToast("请至少选择一个日期");
+      return;
+    }
+    if (taskSchedule === "once" && !onceDate) {
+      showToast("请选择日期");
+      els.taskOnceDate.focus();
       return;
     }
 
-    const submitButton = els.taskForm.querySelector(".submit-btn");
-    submitButton.disabled = true;
+    els.taskDialogSave.disabled = true;
+    els.taskDialogSave.textContent = "添加中…";
 
     try {
       const payload = await requestJSON(API_BASE + "/tasks", {
@@ -3478,7 +3594,8 @@
           name: name,
           schedule: taskSchedule,
           weekdays: weekdays,
-          dates: dates
+          days: days,
+          date: onceDate
         })
       });
 
@@ -3488,19 +3605,14 @@
 
       data.tasks.push(payload.task);
       lastAddedTaskId = payload.task.id;
-      els.taskName.value = "";
-      taskWeekdays = new Set();
-      taskDates = [];
-      renderTaskFormState();
-      renderWeekdayChips();
-      renderDateChips();
+      closeTaskDialog();
       renderCheckin();
       showToast("已添加任务“" + name + "”");
-      els.taskName.focus();
     } catch (error) {
       showToast("添加失败：" + error.message);
     } finally {
-      submitButton.disabled = false;
+      els.taskDialogSave.disabled = false;
+      els.taskDialogSave.textContent = "添加任务";
     }
   }
 
@@ -3820,15 +3932,10 @@
       : "请确认本地服务正在运行：在项目目录执行 <code>python3 server.py</code>，然后刷新 <code>http://127.0.0.1:8765</code>。";
     const submitButton = els.form.querySelector(".submit-btn");
     if (submitButton) submitButton.disabled = true;
-    const taskSubmitButton = els.taskForm.querySelector(".submit-btn");
-    if (taskSubmitButton) taskSubmitButton.disabled = true;
   }
 
   async function init() {
     renderCategories();
-    renderScheduleChoices();
-    renderWeekdayChips();
-    renderDateChips();
     els.date.value = todayISO();
     els.item.value = selectedCategory;
 
@@ -3854,27 +3961,14 @@
     els.navLedger.addEventListener("click", function () { switchView("ledger"); });
     els.navCheckin.addEventListener("click", function () { switchView("checkin"); });
 
-    els.taskForm.addEventListener("submit", addTask);
-    els.taskName.addEventListener("keydown", function (event) {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        els.taskForm.requestSubmit();
-      }
+    els.openTaskDialog.addEventListener("click", openTaskDialog);
+    els.taskDialogForm.addEventListener("submit", addTask);
+    els.taskDialogClose.addEventListener("click", closeTaskDialog);
+    els.taskDialogCancel.addEventListener("click", closeTaskDialog);
+    els.taskDialog.addEventListener("click", function (event) {
+      if (event.target === els.taskDialog) closeTaskDialog();
     });
-    els.taskDateAdd.addEventListener("click", function () {
-      const value = els.taskDateInput.value;
-      if (!value) {
-        showToast("请先选择日期");
-        return;
-      }
-      if (taskDates.indexOf(value) >= 0) {
-        showToast("这个日期已经添加过了");
-        return;
-      }
-      taskDates.push(value);
-      els.taskDateInput.value = "";
-      renderDateChips();
-    });
+
     els.checkPrevMonth.addEventListener("click", function () { shiftCheckMonth(-1); });
     els.checkNextMonth.addEventListener("click", function () { shiftCheckMonth(1); });
     els.checkBackToMonth.addEventListener("click", function () {
@@ -3926,8 +4020,6 @@
       data = await loadData();
       appReady = true;
       submitButton.disabled = false;
-      const taskSubmitButton = els.taskForm.querySelector(".submit-btn");
-      if (taskSubmitButton) taskSubmitButton.disabled = false;
       els.serverBanner.hidden = true;
       render();
       renderCheckin();

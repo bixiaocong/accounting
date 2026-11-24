@@ -25,7 +25,7 @@ DEFAULT_PORT = 8765
 MAX_BODY_BYTES = 6 * 1024 * 1024
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 CATEGORIES = {"餐饮", "交通", "购物", "学习", "居住", "娱乐", "医疗", "其他"}
-TASK_SCHEDULES = {"daily", "weekly", "dates"}
+TASK_SCHEDULES = {"daily", "weekly", "monthly", "once"}
 WEEKDAYS = set(range(7))
 DATA_LOCK = threading.RLock()
 
@@ -125,6 +125,8 @@ def normalise_task(raw: object) -> dict:
     name = name[:40]
 
     schedule = str(raw.get("schedule", "daily")).strip()
+    if schedule == "dates":
+        schedule = "once"  # 兼容旧数据：按日期 → 不重复
     if schedule not in TASK_SCHEDULES:
         schedule = "daily"
 
@@ -140,19 +142,35 @@ def normalise_task(raw: object) -> dict:
                 weekdays.append(day)
     weekdays.sort()
 
-    dates: list[str] = []
-    raw_dates = raw.get("dates", [])
-    if isinstance(raw_dates, list):
-        for value in raw_dates:
-            text = str(value).strip()
-            if valid_date(text) and text not in dates:
-                dates.append(text)
-    dates.sort()
+    days: list[int] = []
+    raw_days = raw.get("days", [])
+    if isinstance(raw_days, list):
+        for value in raw_days:
+            try:
+                day = int(value)
+            except (TypeError, ValueError):
+                continue
+            if 1 <= day <= 31 and day not in days:
+                days.append(day)
+    days.sort()
+
+    once_date = str(raw.get("date", "")).strip()
+    if not valid_date(once_date):
+        # 兼容旧数据：dates 列表的第一个日期
+        raw_dates = raw.get("dates", [])
+        if isinstance(raw_dates, list) and raw_dates:
+            first = str(raw_dates[0]).strip()
+            if valid_date(first):
+                once_date = first
+    if not valid_date(once_date):
+        once_date = ""
 
     if schedule == "weekly" and not weekdays:
         raise ApiError(400, "按周重复的任务至少选择一天")
-    if schedule == "dates" and not dates:
-        raise ApiError(400, "按日期重复的任务至少选择一个日期")
+    if schedule == "monthly" and not days:
+        raise ApiError(400, "按月重复的任务至少选择一个日期")
+    if schedule == "once" and not once_date:
+        raise ApiError(400, "不重复的任务需要指定日期")
 
     task_id = str(raw.get("id") or uuid.uuid4())
     if not task_id or len(task_id) > 100:
@@ -168,7 +186,8 @@ def normalise_task(raw: object) -> dict:
         "name": name,
         "schedule": schedule,
         "weekdays": weekdays,
-        "dates": dates,
+        "days": days,
+        "date": once_date,
         "createdAt": created_at,
     }
 
