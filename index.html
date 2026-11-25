@@ -4089,8 +4089,10 @@
   }
 
   function requestDeleteTask(task) {
-    const needsChoice = (task.schedule === "weekly" || task.schedule === "monthly") &&
-      taskDueOn(task, todayISO());
+    const isRepeatable = task.schedule === "daily" ||
+      task.schedule === "weekly" ||
+      task.schedule === "monthly";
+    const needsChoice = isRepeatable && taskDueOn(task, todayISO());
 
     if (!needsChoice) {
       deleteTask(task);
@@ -4098,9 +4100,13 @@
     }
 
     pendingDeleteTask = task;
+    const repeatText = task.schedule === "daily"
+      ? "每天都要打卡"
+      : (task.schedule === "weekly" ? "每周" : "每月") + "重复";
     els.deleteTaskDialogDesc.textContent =
-      "“" + task.name + "”是" + (task.schedule === "weekly" ? "每周" : "每月") +
-      "重复的任务，今天正好在计划里。要只删除今天这一次，还是删除整个任务？";
+      "“" + task.name + "”是" + repeatText + "的任务，" +
+      (task.schedule === "daily" ? "" : "今天正好在计划里，") +
+      "要只删除今天这一次，还是删除整个任务？";
     openModal(els.deleteTaskDialog);
   }
 
