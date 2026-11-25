@@ -2414,7 +2414,7 @@
       <section class="card entry-card" aria-labelledby="taskTitle">
         <div class="card-heading">
           <div>
-            <h2 id="taskTitle">任务</h2>
+            <h2 id="taskTitle">今日任务</h2>
             <p>添加需要坚持的小任务，按计划打卡</p>
           </div>
           <div class="heading-mark" aria-hidden="true">
@@ -3757,7 +3757,6 @@
       const date = checkMonth + "-" + pad(day);
       const due = tasksDueOn(date).length;
       const done = due ? doneCount(date) : 0;
-      const isFuture = date > today;
       const isSelected = date === checkDate;
       const isComplete = due > 0 && done === due;
 
@@ -3767,9 +3766,7 @@
         (due ? " has-tasks" : "") +
         (isComplete ? " is-complete" : "") +
         (date === today ? " is-today" : "") +
-        (isSelected ? " is-selected" : "") +
-        (isFuture ? " is-future" : "");
-      button.disabled = isFuture;
+        (isSelected ? " is-selected" : "");
       button.dataset.date = date;
       button.setAttribute("aria-pressed", isSelected ? "true" : "false");
       button.setAttribute(
@@ -3790,12 +3787,10 @@
         button.appendChild(ratio);
       }
 
-      if (!isFuture) {
-        button.addEventListener("click", function () {
-          checkDate = date;
-          renderCheckin();
-        });
-      }
+      button.addEventListener("click", function () {
+        checkDate = date;
+        renderCheckin();
+      });
 
       fragment.appendChild(button);
     }
@@ -4071,15 +4066,14 @@
   }
 
   function renderReflection() {
-    const isToday = checkDate === todayISO();
-    els.reflectionTitle.textContent = isToday ? "今日复盘" : dayLabel(checkDate) + "复盘";
-    els.reflectionBox.value = data.reflections[checkDate] || "";
+    els.reflectionTitle.textContent = "今日复盘";
+    els.reflectionBox.value = data.reflections[todayISO()] || "";
     els.reflectionHint.textContent = "自动保存到 data.json";
   }
 
   function onReflectionInput() {
     const text = els.reflectionBox.value;
-    const date = checkDate;
+    const date = todayISO();
     data.reflections[date] = text;
     els.reflectionHint.textContent = "输入中…";
 
