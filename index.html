@@ -1739,6 +1739,17 @@
     background: var(--green-soft);
   }
 
+  /* 选中态要盖过 has-tasks / is-complete 的背景 */
+  .calendar-day.has-tasks.is-selected,
+  .calendar-day.has-tasks.is-selected:hover,
+  .calendar-day.is-complete.is-selected,
+  .calendar-day.is-complete.is-selected:hover {
+    border-color: var(--green);
+    color: #fff;
+    background: var(--green);
+    box-shadow: 0 7px 16px rgba(35, 59, 51, 0.16);
+  }
+
   .checkin-ratio {
     width: 100%;
     margin-top: auto;
