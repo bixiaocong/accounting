@@ -3194,11 +3194,11 @@
     const month = parts[1];
     const firstDay = new Date(year, month - 1, 1);
     const daysInMonth = new Date(year, month, 0).getDate();
-    const leadingBlanks = (firstDay.getDay() + 6) % 7;
+    const leadingBlanks = firstDay.getDay();
     const today = todayISO();
 
     const fragment = document.createDocumentFragment();
-    ["一", "二", "三", "四", "五", "六", "日"].forEach(function (weekday) {
+    ["日", "一", "二", "三", "四", "五", "六"].forEach(function (weekday) {
       const heading = document.createElement("span");
       heading.className = "calendar-weekday";
       heading.textContent = weekday;
@@ -3749,10 +3749,10 @@
     const month = parts[1];
     const firstDay = new Date(year, month - 1, 1);
     const daysInMonth = new Date(year, month, 0).getDate();
-    const leadingBlanks = (firstDay.getDay() + 6) % 7;
+    const leadingBlanks = firstDay.getDay();
 
     const fragment = document.createDocumentFragment();
-    ["一", "二", "三", "四", "五", "六", "日"].forEach(function (weekday) {
+    ["日", "一", "二", "三", "四", "五", "六"].forEach(function (weekday) {
       const heading = document.createElement("span");
       heading.className = "calendar-weekday";
       heading.textContent = weekday;
