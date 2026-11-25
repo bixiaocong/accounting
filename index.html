@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#f4f1ea">
-<title>小账本 · 每日记账</title>
+<title>小葱工作台</title>
 <style>
   :root {
     --bg: #f4f1ea;
@@ -1710,6 +1710,86 @@
   .task-delete:hover { color: #b14a34; background: var(--accent-soft); }
   .task-delete svg { width: 14px; height: 14px; }
 
+  /* ---------- 今日复盘 ---------- */
+  .reflection-block {
+    margin-top: 22px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+
+  .reflection-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+    padding: 0 2px;
+  }
+
+  .reflection-head h3 {
+    margin: 0;
+    color: #41433b;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .reflection-head span {
+    color: var(--muted-light);
+    font-size: 10.5px;
+  }
+
+  .reflection-box {
+    width: 100%;
+    min-height: 118px;
+    padding: 12px 14px;
+    resize: vertical;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    outline: 0;
+    color: var(--ink);
+    background: #fff;
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.7;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+
+  .reflection-box::placeholder { color: #b5b2a9; }
+
+  .reflection-box:focus {
+    border-color: #c9a99a;
+    box-shadow: 0 0 0 4px rgba(217, 93, 63, 0.08);
+  }
+
+  /* 打卡页左栏：高度贴合屏幕，任务列表内部滚动，复盘框始终可见 */
+  #view-checkin .entry-card {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 44px);
+  }
+
+  #view-checkin .card-heading,
+  #view-checkin .add-task-btn,
+  #view-checkin .task-list-head,
+  #view-checkin .reflection-block {
+    flex: 0 0 auto;
+  }
+
+  #view-checkin .task-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding-right: 3px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  #view-checkin .task-list::-webkit-scrollbar { width: 6px; }
+  #view-checkin .task-list::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(160, 150, 132, 0.35);
+  }
+  #view-checkin .task-list::-webkit-scrollbar-track { background: transparent; }
+
   .checkin-spotlight {
     background:
       radial-gradient(circle at 92% 8%, rgba(255, 255, 255, 0.7), transparent 9rem),
@@ -1812,6 +1892,7 @@
   .check-main { flex: 1; min-width: 0; }
 
   .check-name {
+    display: block;
     overflow: hidden;
     color: #34362f;
     font-size: 13px;
@@ -1822,7 +1903,8 @@
   }
 
   .check-sub {
-    margin-top: 2px;
+    display: block;
+    margin-top: 3px;
     overflow: hidden;
     color: var(--muted-light);
     font-size: 10.5px;
@@ -1840,6 +1922,9 @@
   @media (max-width: 880px) {
     .workspace { grid-template-columns: 1fr; }
     .entry-card { position: static; }
+
+    #view-checkin .entry-card { max-height: none; }
+    #view-checkin .task-list { max-height: 46vh; }
 
     .app { flex-direction: column; }
     .sidebar {
@@ -1949,7 +2034,7 @@
         </svg>
       </div>
       <div>
-        <strong>小账本</strong>
+        <strong>小葱工作台</strong>
         <p>记账 · 打卡</p>
       </div>
     </div>
@@ -2202,6 +2287,14 @@
           <span id="taskListCount"></span>
         </div>
         <ul class="task-list" id="taskList"></ul>
+
+        <div class="reflection-block">
+          <div class="reflection-head">
+            <h3 id="reflectionTitle">今日复盘</h3>
+            <span id="reflectionHint">自动保存到 data.json</span>
+          </div>
+          <textarea class="reflection-box" id="reflectionBox" maxlength="2000" placeholder="今天做了什么？有什么收获？简单写几句…"></textarea>
+        </div>
       </section>
 
       <section class="card history-card" aria-labelledby="checkHistoryTitle">
@@ -2434,6 +2527,9 @@
     taskOnceDate: document.getElementById("taskOnceDate"),
     taskList: document.getElementById("taskList"),
     taskListCount: document.getElementById("taskListCount"),
+    reflectionTitle: document.getElementById("reflectionTitle"),
+    reflectionHint: document.getElementById("reflectionHint"),
+    reflectionBox: document.getElementById("reflectionBox"),
     checkMonthTitle: document.getElementById("checkMonthTitle"),
     checkMonthLabel: document.getElementById("checkMonthLabel"),
     checkMonthTotal: document.getElementById("checkMonthTotal"),
@@ -2462,7 +2558,7 @@
     toastText: document.getElementById("toastText")
   };
 
-  let data = { version: 1, records: [], tasks: [], checkins: [] };
+  let data = { version: 1, records: [], tasks: [], checkins: [], reflections: {} };
   let appReady = false;
   let selectedMonth = todayISO().slice(0, 7);
   let selectedDate = todayISO();
@@ -2480,6 +2576,7 @@
   let taskMonthDays = new Set();
   let taskOnceDate = todayISO();
   let lastAddedTaskId = null;
+  let reflectionTimer = null;
 
   /* ---------- Date helpers ---------- */
   function pad(n) { return String(n).padStart(2, "0"); }
@@ -2590,11 +2687,20 @@
     const records = Array.isArray(payload) ? payload : payload && payload.records;
     const tasks = payload && Array.isArray(payload.tasks) ? payload.tasks.filter(isValidTask) : [];
     const checkins = payload && Array.isArray(payload.checkins) ? payload.checkins.filter(isValidCheckin) : [];
+    const reflections = {};
+    if (payload && payload.reflections && typeof payload.reflections === "object") {
+      Object.keys(payload.reflections).forEach(function (key) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(key) && typeof payload.reflections[key] === "string") {
+          reflections[key] = payload.reflections[key];
+        }
+      });
+    }
     return {
       version: 1,
       records: Array.isArray(records) ? records.filter(isValidRecord) : [],
       tasks: tasks,
-      checkins: checkins
+      checkins: checkins,
+      reflections: reflections
     };
   }
 
@@ -3610,12 +3716,51 @@
     }
   }
 
+  function renderReflection() {
+    const isToday = checkDate === todayISO();
+    els.reflectionTitle.textContent = isToday ? "今日复盘" : dayLabel(checkDate) + "复盘";
+    els.reflectionBox.value = data.reflections[checkDate] || "";
+    els.reflectionHint.textContent = "自动保存到 data.json";
+  }
+
+  function onReflectionInput() {
+    const text = els.reflectionBox.value;
+    const date = checkDate;
+    data.reflections[date] = text;
+    els.reflectionHint.textContent = "输入中…";
+
+    clearTimeout(reflectionTimer);
+    reflectionTimer = setTimeout(function () {
+      saveReflection(date, text);
+    }, 600);
+  }
+
+  async function saveReflection(date, text) {
+    if (!appReady) {
+      els.reflectionHint.textContent = "还没有连接本地服务";
+      return;
+    }
+    try {
+      const payload = await requestJSON(API_BASE + "/reflections", {
+        method: "POST",
+        body: JSON.stringify({ date: date, text: text })
+      });
+      if (payload && typeof payload.text === "string") {
+        data.reflections[date] = payload.text;
+      }
+      els.reflectionHint.textContent = "已保存到 data.json";
+    } catch (error) {
+      els.reflectionHint.textContent = "保存失败：" + error.message;
+    }
+  }
+
   function renderCheckin() {
     renderCheckinOverview();
     renderCheckinSpotlight();
     renderCheckinCalendar();
     renderCheckinDayDetail();
     renderTaskList();
+    renderReflection();
   }
 
   /* ---------- Check-in: actions ---------- */
@@ -3911,6 +4056,7 @@
       const records = Array.isArray(parsed) ? parsed : parsed && parsed.records;
       const tasks = parsed && Array.isArray(parsed.tasks) ? parsed.tasks : null;
       const checkins = parsed && Array.isArray(parsed.checkins) ? parsed.checkins : null;
+      const reflections = parsed && parsed.reflections && typeof parsed.reflections === "object" ? parsed.reflections : null;
       if (!Array.isArray(records) || !records.length) {
         showToast("没有找到可导入的记账数据");
         return;
@@ -3928,6 +4074,7 @@
         const requestBody = { records: records };
         if (tasks) requestBody.tasks = tasks;
         if (checkins) requestBody.checkins = checkins;
+        if (reflections) requestBody.reflections = reflections;
         const payload = await requestJSON(API_BASE + "/import", {
           method: "POST",
           body: JSON.stringify(requestBody)
@@ -4036,6 +4183,7 @@
     els.taskDialog.addEventListener("click", function (event) {
       if (event.target === els.taskDialog) closeTaskDialog();
     });
+    els.reflectionBox.addEventListener("input", onReflectionInput);
 
     els.checkPrevMonth.addEventListener("click", function () { shiftCheckMonth(-1); });
     els.checkNextMonth.addEventListener("click", function () { shiftCheckMonth(1); });

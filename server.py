@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""小账本的本地服务：提供页面，并把数据直接读写到 data.json。"""
+"""小葱工作台的本地服务：提供页面，并把数据直接读写到 data.json。"""
 
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ def now_ms() -> int:
 
 
 def empty_data() -> dict:
-    return {"version": 1, "records": [], "tasks": [], "checkins": []}
+    return {"version": 1, "records": [], "tasks": [], "checkins": [], "reflections": {}}
 
 
 def valid_date(value: str) -> bool:
@@ -192,6 +192,20 @@ def normalise_task(raw: object) -> dict:
     }
 
 
+def normalise_reflections(raw: object) -> dict:
+    """复盘文本按日期保存：{ "YYYY-MM-DD": "文本" }。"""
+    result: dict[str, str] = {}
+    if isinstance(raw, dict):
+        for key, value in raw.items():
+            text_key = str(key).strip()
+            if not valid_date(text_key):
+                continue
+            text = str(value).strip()[:2000]
+            if text:
+                result[text_key] = text
+    return result
+
+
 def normalise_checkin(raw: object) -> dict:
     if not isinstance(raw, dict):
         raise ApiError(400, "打卡记录格式不正确")
@@ -235,10 +249,12 @@ def read_data_locked() -> dict:
         raw_records = payload
         raw_tasks: list = []
         raw_checkins: list = []
+        raw_reflections: dict = {}
     elif isinstance(payload, dict):
         raw_records = payload.get("records", [])
         raw_tasks = payload.get("tasks", [])
         raw_checkins = payload.get("checkins", [])
+        raw_reflections = payload.get("reflections", {})
     else:
         raise ApiError(500, "data.json 的格式不正确")
 
@@ -255,7 +271,14 @@ def read_data_locked() -> dict:
     tasks.sort(key=lambda task: task["createdAt"])
     checkins = [normalise_checkin(item) for item in raw_checkins]
     checkins.sort(key=lambda item: (item["date"], item["createdAt"]))
-    return {"version": 1, "records": records, "tasks": tasks, "checkins": checkins}
+    reflections = normalise_reflections(raw_reflections)
+    return {
+        "version": 1,
+        "records": records,
+        "tasks": tasks,
+        "checkins": checkins,
+        "reflections": reflections,
+    }
 
 
 def write_data_locked(data: dict) -> None:
@@ -284,12 +307,13 @@ def ensure_data_file() -> None:
 
 def backup_payload(data: dict) -> dict:
     return {
-        "app": "小账本",
+        "app": "小葱工作台",
         "version": 1,
         "exportedAt": datetime.now().astimezone().isoformat(timespec="seconds"),
         "records": data["records"],
         "tasks": data["tasks"],
         "checkins": data["checkins"],
+        "reflections": data["reflections"],
     }
 
 
@@ -301,7 +325,7 @@ class LedgerHandler(SimpleHTTPRequestHandler):
 
     def log_message(self, fmt: str, *args) -> None:
         # 只保留简短日志，避免终端被资源请求刷屏。
-        print(f"[小账本] {fmt % args}")
+        print(f"[小葱工作台] {fmt % args}")
 
     def send_json(self, status: int, payload: object) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -481,15 +505,37 @@ class LedgerHandler(SimpleHTTPRequestHandler):
                     self.send_json(200, {"changed": False, "checkin": existing})
                 return
 
+            if path == "/api/reflections":
+                if not isinstance(body, dict):
+                    raise ApiError(400, "复盘格式不正确")
+                reflection_date = str(body.get("date", "")).strip()
+                if not valid_date(reflection_date):
+                    raise ApiError(400, "复盘日期格式必须为 YYYY-MM-DD")
+                text = str(body.get("text", "")).strip()[:2000]
+
+                with DATA_LOCK:
+                    data = read_data_locked()
+                    reflections = data["reflections"]
+                    if text:
+                        reflections[reflection_date] = text
+                    else:
+                        reflections.pop(reflection_date, None)
+                    data["reflections"] = reflections
+                    write_data_locked(data)
+                self.send_json(200, {"date": reflection_date, "text": text})
+                return
+
             if path == "/api/import":
                 if isinstance(body, dict):
                     raw_records = body.get("records", [])
                     raw_tasks = body.get("tasks")
                     raw_checkins = body.get("checkins")
+                    raw_reflections = body.get("reflections")
                 else:
                     raw_records = body
                     raw_tasks = None
                     raw_checkins = None
+                    raw_reflections = None
                 records = normalise_records(raw_records)
                 with DATA_LOCK:
                     current = read_data_locked()
@@ -501,11 +547,16 @@ class LedgerHandler(SimpleHTTPRequestHandler):
                         checkins = [normalise_checkin(item) for item in raw_checkins]
                     else:
                         checkins = current["checkins"]
+                    if isinstance(raw_reflections, dict):
+                        reflections = normalise_reflections(raw_reflections)
+                    else:
+                        reflections = current["reflections"]
                     payload = {
                         "version": 1,
                         "records": records,
                         "tasks": tasks,
                         "checkins": checkins,
+                        "reflections": reflections,
                     }
                     write_data_locked(payload)
                 self.send_json(
@@ -515,6 +566,7 @@ class LedgerHandler(SimpleHTTPRequestHandler):
                         "records": records,
                         "tasks": tasks,
                         "checkins": checkins,
+                        "reflections": reflections,
                         "imported": len(records),
                     },
                 )
@@ -574,7 +626,7 @@ class LedgerHandler(SimpleHTTPRequestHandler):
 
 
 def server_already_running(port: int) -> bool:
-    """检查该端口上是否已经有小账本在运行。"""
+    """检查该端口上是否已经有小葱工作台在运行。"""
     try:
         with urlopen(f"http://{HOST}:{port}/api/health", timeout=0.5) as response:
             return response.status == 200
@@ -583,7 +635,7 @@ def server_already_running(port: int) -> bool:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="小账本本地服务")
+    parser = argparse.ArgumentParser(description="小葱工作台本地服务")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="监听端口")
     parser.add_argument("--no-browser", action="store_true", help="不要自动打开浏览器")
     args = parser.parse_args()
@@ -592,7 +644,7 @@ def main() -> None:
 
     if server_already_running(args.port):
         print("")
-        print("  小账本已经在运行")
+        print("  小葱工作台已经在运行")
         print(f"  访问地址：{url}")
         print("")
         if not args.no_browser:
@@ -609,7 +661,7 @@ def main() -> None:
         raise SystemExit(1)
 
     print("")
-    print("  小账本已启动")
+    print("  小葱工作台已启动")
     print(f"  访问地址：{url}")
     print(f"  数据文件：{DATA_FILE}")
     print("  按 Ctrl+C 停止服务")
@@ -621,7 +673,7 @@ def main() -> None:
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\n小账本已停止。")
+        print("\n小葱工作台已停止。")
     finally:
         server.server_close()
 
