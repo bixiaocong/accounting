@@ -1621,6 +1621,109 @@
     font-size: 10.5px;
   }
 
+  .task-list-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .task-manage-btn {
+    padding: 2px 8px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: #8a8578;
+    background: #fff;
+    font-size: 10.5px;
+    line-height: 1.4;
+    transition: 0.17s ease;
+  }
+
+  .task-manage-btn:hover {
+    border-color: #cdbfae;
+    color: #5f6157;
+  }
+
+  .manage-task-list {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    max-height: 46vh;
+    overflow-y: auto;
+    list-style: none;
+  }
+
+  .manage-task-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+  }
+
+  .manage-task-row .task-main { flex: 1; min-width: 0; }
+
+  .manage-task-row .task-name {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .manage-task-row .task-schedule {
+    margin-top: 2px;
+    color: var(--muted-light);
+    font-size: 10.5px;
+  }
+
+  .manage-task-empty {
+    padding: 22px 0;
+    color: var(--muted-light);
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .delete-choices {
+    display: grid;
+    gap: 10px;
+  }
+
+  .delete-choice {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 12px 14px;
+    text-align: left;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+    transition: 0.17s ease;
+  }
+
+  .delete-choice strong {
+    color: #3a3c34;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .delete-choice span {
+    color: var(--muted);
+    font-size: 11.5px;
+    line-height: 1.5;
+  }
+
+  .delete-choice:hover {
+    border-color: #cdbfae;
+    transform: translateY(-1px);
+  }
+
+  .delete-choice.is-danger strong { color: #b14a34; }
+
+  .delete-choice.is-danger:hover {
+    border-color: #e3b8ad;
+    background: #fdf5f2;
+  }
+
   .task-list {
     margin: 0;
     padding: 0;
@@ -1860,11 +1963,7 @@
     background: transparent;
     font: inherit;
     text-align: left;
-    cursor: pointer;
-    transition: background 0.17s ease;
   }
-
-  .check-row:hover { background: rgba(244, 240, 232, 0.8); }
 
   .check-box {
     display: grid;
@@ -1882,11 +1981,6 @@
   .check-box svg {
     width: 13px;
     height: 13px;
-  }
-
-  .check-row.is-done .check-box {
-    border-color: var(--green);
-    background: var(--green);
   }
 
   .check-main { flex: 1; min-width: 0; }
@@ -1917,6 +2011,48 @@
     text-decoration: line-through;
     text-decoration-color: #c9c5b9;
   }
+
+  .check-status {
+    flex: 0 0 auto;
+    padding: 3px 9px;
+    border-radius: 999px;
+    color: #9a958a;
+    background: rgba(240, 236, 227, 0.9);
+    font-size: 10.5px;
+    line-height: 1.4;
+  }
+
+  .check-row.is-done .check-status {
+    color: var(--green);
+    background: var(--green-soft);
+  }
+
+  /* ---------- 右下角当日复盘 ---------- */
+  .day-reflection {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: #fffdfa;
+  }
+
+  .day-reflection-head {
+    margin-bottom: 6px;
+    color: #8a8578;
+    font-size: 10.5px;
+    letter-spacing: 0.05em;
+  }
+
+  .day-reflection-text {
+    margin: 0;
+    color: #4a4c43;
+    font-size: 12.5px;
+    line-height: 1.75;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .day-reflection-text.is-empty { color: #b5b2a9; }
 
   /* ---------- Responsive ---------- */
   @media (max-width: 880px) {
@@ -2284,7 +2420,10 @@
 
         <div class="task-list-head">
           <h3>任务列表</h3>
-          <span id="taskListCount"></span>
+          <div class="task-list-meta">
+            <span id="taskListCount"></span>
+            <button class="task-manage-btn" id="openTaskManage" type="button">全部任务</button>
+          </div>
         </div>
         <ul class="task-list" id="taskList"></ul>
 
@@ -2449,6 +2588,51 @@
   </form>
 </dialog>
 
+<dialog class="edit-dialog task-dialog" id="manageTasksDialog" aria-labelledby="manageTasksTitle">
+  <div class="edit-form">
+    <div class="edit-head">
+      <div>
+        <h2 id="manageTasksTitle">全部任务</h2>
+        <p>包括不在今天计划里的任务，可以在这里删除。</p>
+      </div>
+      <button class="dialog-close" id="manageTasksClose" type="button" aria-label="关闭">×</button>
+    </div>
+
+    <ul class="manage-task-list" id="manageTaskList"></ul>
+
+    <div class="edit-actions">
+      <button class="dialog-secondary" id="manageTasksDone" type="button">关闭</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog class="edit-dialog delete-task-dialog" id="deleteTaskDialog" aria-labelledby="deleteTaskDialogTitle">
+  <div class="edit-form">
+    <div class="edit-head">
+      <div>
+        <h2 id="deleteTaskDialogTitle">删除任务</h2>
+        <p id="deleteTaskDialogDesc"></p>
+      </div>
+      <button class="dialog-close" id="deleteTaskDialogClose" type="button" aria-label="关闭">×</button>
+    </div>
+
+    <div class="delete-choices">
+      <button class="delete-choice" id="deleteTaskSkip" type="button">
+        <strong>只删除今天</strong>
+        <span>今天不再显示这个任务，之后的计划照常</span>
+      </button>
+      <button class="delete-choice is-danger" id="deleteTaskAll" type="button">
+        <strong>删除全部</strong>
+        <span>移除整个任务，它的全部打卡记录也会一起删除</span>
+      </button>
+    </div>
+
+    <div class="edit-actions">
+      <button class="dialog-secondary" id="deleteTaskCancel" type="button">取消</button>
+    </div>
+  </div>
+</dialog>
+
 <script>
 (function () {
   "use strict";
@@ -2527,6 +2711,17 @@
     taskOnceDate: document.getElementById("taskOnceDate"),
     taskList: document.getElementById("taskList"),
     taskListCount: document.getElementById("taskListCount"),
+    openTaskManage: document.getElementById("openTaskManage"),
+    manageTasksDialog: document.getElementById("manageTasksDialog"),
+    manageTaskList: document.getElementById("manageTaskList"),
+    manageTasksClose: document.getElementById("manageTasksClose"),
+    manageTasksDone: document.getElementById("manageTasksDone"),
+    deleteTaskDialog: document.getElementById("deleteTaskDialog"),
+    deleteTaskDialogDesc: document.getElementById("deleteTaskDialogDesc"),
+    deleteTaskSkip: document.getElementById("deleteTaskSkip"),
+    deleteTaskAll: document.getElementById("deleteTaskAll"),
+    deleteTaskCancel: document.getElementById("deleteTaskCancel"),
+    deleteTaskDialogClose: document.getElementById("deleteTaskDialogClose"),
     reflectionTitle: document.getElementById("reflectionTitle"),
     reflectionHint: document.getElementById("reflectionHint"),
     reflectionBox: document.getElementById("reflectionBox"),
@@ -2577,6 +2772,7 @@
   let taskOnceDate = todayISO();
   let lastAddedTaskId = null;
   let reflectionTimer = null;
+  let pendingDeleteTask = null;
 
   /* ---------- Date helpers ---------- */
   function pad(n) { return String(n).padStart(2, "0"); }
@@ -2685,7 +2881,13 @@
 
   function normaliseData(payload) {
     const records = Array.isArray(payload) ? payload : payload && payload.records;
-    const tasks = payload && Array.isArray(payload.tasks) ? payload.tasks.filter(isValidTask) : [];
+    const tasks = payload && Array.isArray(payload.tasks) ? payload.tasks.filter(isValidTask).map(function (task) {
+      return Object.assign({}, task, {
+        skips: Array.isArray(task.skips) ? task.skips.filter(function (date) {
+          return typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date);
+        }) : []
+      });
+    }) : [];
     const checkins = payload && Array.isArray(payload.checkins) ? payload.checkins.filter(isValidCheckin) : [];
     const reflections = {};
     if (payload && payload.reflections && typeof payload.reflections === "object") {
@@ -3271,6 +3473,7 @@
 
   /* ---------- Check-in: schedule helpers ---------- */
   function taskDueOn(task, date) {
+    if ((task.skips || []).indexOf(date) >= 0) return false;
     if (task.schedule === "daily") return true;
     if (task.schedule === "weekly") {
       return (task.weekdays || []).indexOf(parseISO(date).getDay()) >= 0;
@@ -3489,14 +3692,6 @@
     const li = document.createElement("li");
     li.className = "check-row" + (done ? " is-done" : "");
 
-    const box = document.createElement("span");
-    box.className = "check-box";
-    box.setAttribute("aria-hidden", "true");
-    if (done) {
-      box.innerHTML =
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>';
-    }
-
     const main = document.createElement("span");
     main.className = "check-main";
     const name = document.createElement("span");
@@ -3508,12 +3703,32 @@
     main.appendChild(name);
     main.appendChild(sub);
 
-    li.appendChild(box);
+    const status = document.createElement("span");
+    status.className = "check-status";
+    status.textContent = done ? "已完成" : "未完成";
+
     li.appendChild(main);
-    li.addEventListener("click", function () {
-      toggleCheckin(task.id, checkDate, !done);
-    });
+    li.appendChild(status);
     return li;
+  }
+
+  function appendDayReflection() {
+    const text = (data.reflections[checkDate] || "").trim();
+
+    const block = document.createElement("div");
+    block.className = "day-reflection";
+
+    const head = document.createElement("div");
+    head.className = "day-reflection-head";
+    head.textContent = "复盘";
+
+    const body = document.createElement("p");
+    body.className = "day-reflection-text" + (text ? "" : " is-empty");
+    body.textContent = text || "这一天还没有写复盘";
+
+    block.appendChild(head);
+    block.appendChild(body);
+    els.checkinDayContent.appendChild(block);
   }
 
   function renderCheckinDayDetail() {
@@ -3534,6 +3749,7 @@
         "</svg>" +
         "<span>这一天没有需要打卡的任务</span>";
       els.checkinDayContent.appendChild(empty);
+      appendDayReflection();
       return;
     }
 
@@ -3543,10 +3759,14 @@
       list.appendChild(buildCheckinRow(task, isTaskDoneOn(task, checkDate)));
     });
     els.checkinDayContent.appendChild(list);
+    appendDayReflection();
   }
 
   function renderTaskList() {
-    els.taskListCount.textContent = data.tasks.length + " 个任务";
+    const today = todayISO();
+    const dueTasks = data.tasks.filter(function (task) { return taskDueOn(task, today); });
+
+    els.taskListCount.textContent = dueTasks.length + " 个任务";
     els.taskList.innerHTML = "";
 
     if (!data.tasks.length) {
@@ -3558,25 +3778,29 @@
       return;
     }
 
-    const today = todayISO();
+    if (!dueTasks.length) {
+      const empty = document.createElement("div");
+      empty.className = "day-empty";
+      empty.style.minHeight = "72px";
+      empty.innerHTML = "<span>今天没有需要打卡的任务</span>";
+      els.taskList.appendChild(empty);
+      return;
+    }
 
-    data.tasks.forEach(function (task) {
-      const dueToday = taskDueOn(task, today);
-      const doneToday = dueToday && isTaskDoneOn(task, today);
+    dueTasks.forEach(function (task) {
+      const doneToday = isTaskDoneOn(task, today);
 
       const li = document.createElement("li");
       li.className = "task-row" +
         (task.id === lastAddedTaskId ? " is-new" : "") +
-        (doneToday ? " is-done" : "") +
-        (dueToday ? "" : " is-off");
+        (doneToday ? " is-done" : "");
 
       const box = document.createElement("button");
       box.type = "button";
       box.className = "check-box task-check-box";
       box.setAttribute("aria-pressed", doneToday ? "true" : "false");
       box.setAttribute("aria-label", doneToday ? "取消打卡：" + task.name : "打卡：" + task.name);
-      box.title = doneToday ? "取消打卡" : (dueToday ? "打卡" : "今天不需要打卡");
-      box.disabled = !dueToday;
+      box.title = doneToday ? "取消打卡" : "打卡";
       if (doneToday) {
         box.innerHTML =
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>';
@@ -3604,18 +3828,16 @@
         "</svg>";
       del.addEventListener("click", function (event) {
         event.stopPropagation();
-        deleteTask(task);
+        requestDeleteTask(task);
       });
 
       li.appendChild(box);
       li.appendChild(main);
       li.appendChild(del);
 
-      if (dueToday) {
-        li.addEventListener("click", function () {
-          toggleCheckin(task.id, today, !doneToday);
-        });
-      }
+      li.addEventListener("click", function () {
+        toggleCheckin(task.id, today, !doneToday);
+      });
 
       els.taskList.appendChild(li);
     });
@@ -3684,6 +3906,22 @@
     els.taskOnceField.hidden = taskSchedule !== "once";
   }
 
+  function openModal(dialog) {
+    if (typeof dialog.showModal === "function") {
+      dialog.showModal();
+    } else {
+      dialog.setAttribute("open", "");
+    }
+  }
+
+  function closeModal(dialog) {
+    if (dialog.open && typeof dialog.close === "function") {
+      dialog.close();
+    } else {
+      dialog.removeAttribute("open");
+    }
+  }
+
   function openTaskDialog() {
     taskSchedule = "daily";
     taskWeekdays = new Set();
@@ -3697,11 +3935,7 @@
     renderTaskWeekdayChips();
     renderTaskMonthdayChips();
 
-    if (typeof els.taskDialog.showModal === "function") {
-      els.taskDialog.showModal();
-    } else {
-      els.taskDialog.setAttribute("open", "");
-    }
+    openModal(els.taskDialog);
 
     window.requestAnimationFrame(function () {
       els.taskDialogName.focus();
@@ -3709,11 +3943,7 @@
   }
 
   function closeTaskDialog() {
-    if (els.taskDialog.open && typeof els.taskDialog.close === "function") {
-      els.taskDialog.close();
-    } else {
-      els.taskDialog.removeAttribute("open");
-    }
+    closeModal(els.taskDialog);
   }
 
   function renderReflection() {
@@ -3728,6 +3958,13 @@
     const date = checkDate;
     data.reflections[date] = text;
     els.reflectionHint.textContent = "输入中…";
+
+    const dayText = document.querySelector("#checkinDayContent .day-reflection-text");
+    if (dayText && date === checkDate) {
+      const trimmed = text.trim();
+      dayText.textContent = trimmed || "这一天还没有写复盘";
+      dayText.classList.toggle("is-empty", !trimmed);
+    }
 
     clearTimeout(reflectionTimer);
     reflectionTimer = setTimeout(function () {
@@ -3829,11 +4066,13 @@
     }
   }
 
-  async function deleteTask(task) {
-    const okay = window.confirm(
-      "确定删除任务“" + task.name + "”吗？\n这个任务的历史打卡记录也会一起删除。"
-    );
-    if (!okay) return;
+  async function deleteTask(task, skipConfirm) {
+    if (!skipConfirm) {
+      const okay = window.confirm(
+        "确定删除任务“" + task.name + "”吗？\n这个任务的历史打卡记录也会一起删除。"
+      );
+      if (!okay) return;
+    }
 
     try {
       await requestJSON(API_BASE + "/tasks?id=" + encodeURIComponent(task.id), {
@@ -3842,10 +4081,121 @@
       data.tasks = data.tasks.filter(function (item) { return item.id !== task.id; });
       data.checkins = data.checkins.filter(function (item) { return item.taskId !== task.id; });
       renderCheckin();
+      if (els.manageTasksDialog.open) renderManageTasks();
       showToast("任务已删除");
     } catch (error) {
       showToast("删除失败：" + error.message);
     }
+  }
+
+  function requestDeleteTask(task) {
+    const needsChoice = (task.schedule === "weekly" || task.schedule === "monthly") &&
+      taskDueOn(task, todayISO());
+
+    if (!needsChoice) {
+      deleteTask(task);
+      return;
+    }
+
+    pendingDeleteTask = task;
+    els.deleteTaskDialogDesc.textContent =
+      "“" + task.name + "”是" + (task.schedule === "weekly" ? "每周" : "每月") +
+      "重复的任务，今天正好在计划里。要只删除今天这一次，还是删除整个任务？";
+    openModal(els.deleteTaskDialog);
+  }
+
+  function closeDeleteTaskDialog() {
+    closeModal(els.deleteTaskDialog);
+    pendingDeleteTask = null;
+  }
+
+  async function skipTaskToday() {
+    const task = pendingDeleteTask;
+    if (!task) return;
+
+    const date = todayISO();
+    closeDeleteTaskDialog();
+
+    try {
+      const payload = await requestJSON(API_BASE + "/tasks/skip", {
+        method: "POST",
+        body: JSON.stringify({ taskId: task.id, date: date })
+      });
+
+      if (payload && isValidTask(payload.task)) {
+        data.tasks = data.tasks.map(function (item) {
+          return item.id === payload.task.id ? payload.task : item;
+        });
+      } else {
+        task.skips = (task.skips || []).concat([date]);
+      }
+
+      data.checkins = data.checkins.filter(function (item) {
+        return !(item.taskId === task.id && item.date === date);
+      });
+
+      renderCheckin();
+      if (els.manageTasksDialog.open) renderManageTasks();
+      showToast("已删除今天的“" + task.name + "”，之后的计划照常");
+    } catch (error) {
+      showToast("删除失败：" + error.message);
+    }
+  }
+
+  function deletePendingTaskAll() {
+    const task = pendingDeleteTask;
+    closeDeleteTaskDialog();
+    if (task) deleteTask(task, true);
+  }
+
+  function renderManageTasks() {
+    els.manageTaskList.innerHTML = "";
+
+    if (!data.tasks.length) {
+      const empty = document.createElement("li");
+      empty.className = "manage-task-empty";
+      empty.textContent = "还没有任务";
+      els.manageTaskList.appendChild(empty);
+      return;
+    }
+
+    const today = todayISO();
+
+    data.tasks.forEach(function (task) {
+      const li = document.createElement("li");
+      li.className = "manage-task-row";
+
+      const main = document.createElement("div");
+      main.className = "task-main";
+      const name = document.createElement("div");
+      name.className = "task-name";
+      name.textContent = task.name;
+      const schedule = document.createElement("div");
+      schedule.className = "task-schedule";
+      schedule.textContent = scheduleText(task) + (taskDueOn(task, today) ? " · 今天" : "");
+      main.appendChild(name);
+      main.appendChild(schedule);
+
+      const del = document.createElement("button");
+      del.className = "task-delete";
+      del.type = "button";
+      del.setAttribute("aria-label", "删除任务 " + task.name);
+      del.title = "删除任务";
+      del.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+          '<path d="M4 7h16M9.5 7V4.8h5V7M6.5 7l.8 12.2h9.4L17.5 7M10 10.5v5.5M14 10.5v5.5"/>' +
+        "</svg>";
+      del.addEventListener("click", function () { requestDeleteTask(task); });
+
+      li.appendChild(main);
+      li.appendChild(del);
+      els.manageTaskList.appendChild(li);
+    });
+  }
+
+  function openManageTasks() {
+    renderManageTasks();
+    openModal(els.manageTasksDialog);
   }
 
   async function toggleCheckin(taskId, date, checked) {
@@ -4183,6 +4533,22 @@
     els.taskDialog.addEventListener("click", function (event) {
       if (event.target === els.taskDialog) closeTaskDialog();
     });
+
+    els.openTaskManage.addEventListener("click", openManageTasks);
+    els.manageTasksClose.addEventListener("click", function () { closeModal(els.manageTasksDialog); });
+    els.manageTasksDone.addEventListener("click", function () { closeModal(els.manageTasksDialog); });
+    els.manageTasksDialog.addEventListener("click", function (event) {
+      if (event.target === els.manageTasksDialog) closeModal(els.manageTasksDialog);
+    });
+
+    els.deleteTaskSkip.addEventListener("click", skipTaskToday);
+    els.deleteTaskAll.addEventListener("click", deletePendingTaskAll);
+    els.deleteTaskCancel.addEventListener("click", closeDeleteTaskDialog);
+    els.deleteTaskDialogClose.addEventListener("click", closeDeleteTaskDialog);
+    els.deleteTaskDialog.addEventListener("click", function (event) {
+      if (event.target === els.deleteTaskDialog) closeDeleteTaskDialog();
+    });
+    els.deleteTaskDialog.addEventListener("close", function () { pendingDeleteTask = null; });
     els.reflectionBox.addEventListener("input", onReflectionInput);
 
     els.checkPrevMonth.addEventListener("click", function () { shiftCheckMonth(-1); });

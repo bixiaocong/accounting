@@ -172,6 +172,15 @@ def normalise_task(raw: object) -> dict:
     if schedule == "once" and not once_date:
         raise ApiError(400, "不重复的任务需要指定日期")
 
+    skips: list[str] = []
+    raw_skips = raw.get("skips", [])
+    if isinstance(raw_skips, list):
+        for value in raw_skips:
+            item = str(value).strip()
+            if valid_date(item) and item not in skips:
+                skips.append(item)
+    skips.sort()
+
     task_id = str(raw.get("id") or uuid.uuid4())
     if not task_id or len(task_id) > 100:
         task_id = str(uuid.uuid4())
@@ -188,6 +197,7 @@ def normalise_task(raw: object) -> dict:
         "weekdays": weekdays,
         "days": days,
         "date": once_date,
+        "skips": skips,
         "createdAt": created_at,
     }
 
@@ -452,6 +462,39 @@ class LedgerHandler(SimpleHTTPRequestHandler):
                     data["tasks"].sort(key=lambda item: item["createdAt"])
                     write_data_locked(data)
                 self.send_json(201, {"task": task})
+                return
+
+            if path == "/api/tasks/skip":
+                if not isinstance(body, dict):
+                    raise ApiError(400, "任务格式不正确")
+                task_id = str(body.get("taskId", "")).strip()
+                skip_date = str(body.get("date", "")).strip()
+                if not task_id:
+                    raise ApiError(400, "缺少任务 id")
+                if not valid_date(skip_date):
+                    raise ApiError(400, "日期格式必须为 YYYY-MM-DD")
+
+                with DATA_LOCK:
+                    data = read_data_locked()
+                    task = next(
+                        (item for item in data["tasks"] if item["id"] == task_id),
+                        None,
+                    )
+                    if task is None:
+                        raise ApiError(404, "没有找到这个任务")
+                    skips = list(task.get("skips") or [])
+                    if skip_date not in skips:
+                        skips.append(skip_date)
+                        skips.sort()
+                    task["skips"] = skips
+                    data["checkins"] = [
+                        item
+                        for item in data["checkins"]
+                        if not (item["taskId"] == task_id and item["date"] == skip_date)
+                    ]
+                    write_data_locked(data)
+
+                self.send_json(200, {"task": task, "skipped": skip_date})
                 return
 
             if path == "/api/checkins":
