@@ -1481,12 +1481,25 @@
     color: var(--muted);
     background: #fff;
     font-size: 11.5px;
+    appearance: none;
+    -webkit-appearance: none;
     transition: 0.17s ease;
   }
 
   .weekday-chip:hover {
     border-color: #cdbfae;
     transform: translateY(-1px);
+  }
+
+  .weekday-chip:focus,
+  .monthday-chip:focus {
+    outline: none;
+  }
+
+  .weekday-chip:focus-visible,
+  .monthday-chip:focus-visible {
+    outline: 2px solid rgba(217, 93, 63, 0.35);
+    outline-offset: 2px;
   }
 
   .weekday-chip.is-on {
@@ -1513,6 +1526,8 @@
     background: #fff;
     font-size: 11.5px;
     font-variant-numeric: tabular-nums;
+    appearance: none;
+    -webkit-appearance: none;
     transition: 0.17s ease;
   }
 
@@ -1619,22 +1634,40 @@
     min-height: 47px;
     padding: 7px 8px;
     border-radius: 12px;
+    cursor: pointer;
     transition: background 0.17s ease;
   }
 
   .task-row:hover { background: rgba(244, 240, 232, 0.8); }
 
-  .task-dot {
-    display: grid;
-    place-items: center;
-    flex: 0 0 auto;
-    width: 31px;
-    height: 31px;
-    border-radius: 10px;
-    color: var(--accent-dark);
-    background: var(--accent-soft);
-    font-size: 14px;
+  .task-row.is-off {
+    cursor: default;
+    opacity: 0.55;
   }
+
+  .task-row.is-done .task-name {
+    color: #a4a69c;
+    text-decoration: line-through;
+    text-decoration-color: #c9c5b9;
+  }
+
+  .task-row.is-done .task-schedule { color: #6f9b78; }
+
+  .task-check-box {
+    flex: 0 0 auto;
+    width: 25px;
+    height: 25px;
+    padding: 0;
+  }
+
+  .task-row.is-done .task-check-box,
+  .task-check-box[aria-pressed="true"] {
+    border-color: var(--green);
+    color: #fff;
+    background: var(--green);
+  }
+
+  .task-check-box:disabled { cursor: default; }
 
   .task-main { flex: 1; min-width: 0; }
 
@@ -3403,22 +3436,34 @@
       const empty = document.createElement("div");
       empty.className = "day-empty";
       empty.style.minHeight = "72px";
-      empty.innerHTML = "<span>还没有任务，先在上面添加一个吧</span>";
+      empty.innerHTML = "<span>还没有任务，点上面的按钮添加一个吧</span>";
       els.taskList.appendChild(empty);
       return;
     }
 
-    data.tasks.forEach(function (task) {
-      const li = document.createElement("li");
-      li.className = "task-row" + (task.id === lastAddedTaskId ? " is-new" : "");
+    const today = todayISO();
 
-      const dot = document.createElement("span");
-      dot.className = "task-dot";
-      dot.setAttribute("aria-hidden", "true");
-      dot.textContent = task.schedule === "daily" ? "📅"
-        : task.schedule === "weekly" ? "🔁"
-        : task.schedule === "monthly" ? "📆"
-        : "🎯";
+    data.tasks.forEach(function (task) {
+      const dueToday = taskDueOn(task, today);
+      const doneToday = dueToday && isTaskDoneOn(task, today);
+
+      const li = document.createElement("li");
+      li.className = "task-row" +
+        (task.id === lastAddedTaskId ? " is-new" : "") +
+        (doneToday ? " is-done" : "") +
+        (dueToday ? "" : " is-off");
+
+      const box = document.createElement("button");
+      box.type = "button";
+      box.className = "check-box task-check-box";
+      box.setAttribute("aria-pressed", doneToday ? "true" : "false");
+      box.setAttribute("aria-label", doneToday ? "取消打卡：" + task.name : "打卡：" + task.name);
+      box.title = doneToday ? "取消打卡" : (dueToday ? "打卡" : "今天不需要打卡");
+      box.disabled = !dueToday;
+      if (doneToday) {
+        box.innerHTML =
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>';
+      }
 
       const main = document.createElement("div");
       main.className = "task-main";
@@ -3427,7 +3472,7 @@
       name.textContent = task.name;
       const schedule = document.createElement("div");
       schedule.className = "task-schedule";
-      schedule.textContent = scheduleText(task);
+      schedule.textContent = doneToday ? "今天已完成" : scheduleText(task);
       main.appendChild(name);
       main.appendChild(schedule);
 
@@ -3440,11 +3485,21 @@
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
           '<path d="M4 7h16M9.5 7V4.8h5V7M6.5 7l.8 12.2h9.4L17.5 7M10 10.5v5.5M14 10.5v5.5"/>' +
         "</svg>";
-      del.addEventListener("click", function () { deleteTask(task); });
+      del.addEventListener("click", function (event) {
+        event.stopPropagation();
+        deleteTask(task);
+      });
 
-      li.appendChild(dot);
+      li.appendChild(box);
       li.appendChild(main);
       li.appendChild(del);
+
+      if (dueToday) {
+        li.addEventListener("click", function () {
+          toggleCheckin(task.id, today, !doneToday);
+        });
+      }
+
       els.taskList.appendChild(li);
     });
     lastAddedTaskId = null;
