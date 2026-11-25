@@ -584,6 +584,14 @@
 
   .amount-input { padding-left: 35px; font-size: 16px; font-variant-numeric: tabular-nums; }
 
+  .amount-preview {
+    display: block;
+    margin-top: 6px;
+    color: #2f6b54;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+
   .currency-prefix {
     position: absolute;
     left: 15px;
@@ -2300,11 +2308,12 @@
           </div>
 
           <label class="field" for="entryAmount">
-            <span class="field-label"><span>金额</span><span class="field-hint">人民币</span></span>
+            <span class="field-label"><span>金额</span><span class="field-hint">支持算式</span></span>
             <span class="input-wrap">
               <span class="currency-prefix">¥</span>
-              <input class="text-input amount-input" id="entryAmount" name="amount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" required>
+              <input class="text-input amount-input" id="entryAmount" name="amount" type="text" inputmode="decimal" placeholder="0.00 或 2+3+3" maxlength="120" autocomplete="off" required>
             </span>
+            <span class="amount-preview" id="amountPreview" hidden></span>
           </label>
 
           <button class="submit-btn" type="submit">
@@ -2529,11 +2538,12 @@
       </div>
 
       <label class="field" for="editAmount">
-        <span class="field-label"><span>金额</span><span class="field-hint">人民币</span></span>
+        <span class="field-label"><span>金额</span><span class="field-hint">支持算式</span></span>
         <span class="input-wrap">
           <span class="currency-prefix">¥</span>
-          <input class="text-input amount-input" id="editAmount" name="amount" type="number" min="0.01" step="0.01" inputmode="decimal" required>
+          <input class="text-input amount-input" id="editAmount" name="amount" type="text" inputmode="decimal" placeholder="0.00 或 2+3+3" maxlength="120" autocomplete="off" required>
         </span>
+        <span class="amount-preview" id="editAmountPreview" hidden></span>
       </label>
     </div>
 
@@ -2656,6 +2666,7 @@
     date: document.getElementById("entryDate"),
     item: document.getElementById("entryItem"),
     amount: document.getElementById("entryAmount"),
+    amountPreview: document.getElementById("amountPreview"),
     categoryGrid: document.getElementById("categoryGrid"),
     itemSuggestions: document.getElementById("itemSuggestions"),
     dateHint: document.getElementById("dateHint"),
@@ -2685,6 +2696,7 @@
     editDate: document.getElementById("editDate"),
     editItem: document.getElementById("editItem"),
     editAmount: document.getElementById("editAmount"),
+    editAmountPreview: document.getElementById("editAmountPreview"),
     editCategoryGrid: document.getElementById("editCategoryGrid"),
     editSave: document.getElementById("editSave"),
     prevMonth: document.getElementById("prevMonth"),
@@ -2828,6 +2840,117 @@
       integer: Number(parts[0]).toLocaleString("zh-CN"),
       decimal: parts[1]
     };
+  }
+
+  /* 金额输入支持算式，例如 2+3+3、12.5*2、(8+2)/2 */
+  function evaluateAmount(raw) {
+    let text = String(raw == null ? "" : raw).trim();
+    if (!text) return NaN;
+
+    text = text
+      .replace(/[０-９]/g, function (ch) {
+        return String.fromCharCode(ch.charCodeAt(0) - 0xfee0);
+      })
+      .replace(/[＋]/g, "+")
+      .replace(/[－—–]/g, "-")
+      .replace(/[＊×xX]/g, "*")
+      .replace(/[／÷]/g, "/")
+      .replace(/[（]/g, "(")
+      .replace(/[）]/g, ")")
+      .replace(/[．]/g, ".")
+      .replace(/[，,\s¥￥]/g, "");
+
+    if (!text || text.length > 120) return NaN;
+    if (!/^[0-9.+\-*/()]+$/.test(text)) return NaN;
+
+    let index = 0;
+
+    function parseFactor() {
+      if (text[index] === "+") {
+        index += 1;
+        return parseFactor();
+      }
+      if (text[index] === "-") {
+        index += 1;
+        return -parseFactor();
+      }
+      if (text[index] === "(") {
+        index += 1;
+        const value = parseExpr();
+        if (text[index] !== ")") throw new Error("缺少右括号");
+        index += 1;
+        return value;
+      }
+
+      const start = index;
+      let dots = 0;
+      while (index < text.length) {
+        const ch = text[index];
+        if (ch >= "0" && ch <= "9") {
+          index += 1;
+        } else if (ch === ".") {
+          dots += 1;
+          if (dots > 1) throw new Error("小数点过多");
+          index += 1;
+        } else {
+          break;
+        }
+      }
+      if (start === index) throw new Error("缺少数字");
+
+      const value = Number(text.slice(start, index));
+      if (!Number.isFinite(value)) throw new Error("数字不正确");
+      return value;
+    }
+
+    function parseTerm() {
+      let value = parseFactor();
+      while (index < text.length && (text[index] === "*" || text[index] === "/")) {
+        const op = text[index];
+        index += 1;
+        const next = parseFactor();
+        value = op === "*" ? value * next : value / next;
+      }
+      return value;
+    }
+
+    function parseExpr() {
+      let value = parseTerm();
+      while (index < text.length && (text[index] === "+" || text[index] === "-")) {
+        const op = text[index];
+        index += 1;
+        const next = parseTerm();
+        value = op === "+" ? value + next : value - next;
+      }
+      return value;
+    }
+
+    try {
+      const value = parseExpr();
+      if (index !== text.length || !Number.isFinite(value)) return NaN;
+      return value;
+    } catch (error) {
+      return NaN;
+    }
+  }
+
+  function updateAmountPreview(input, preview) {
+    if (!input || !preview) return;
+    const raw = input.value.trim();
+    const looksLikeExpression = /[-+*/()（）＋－×÷]/.test(raw);
+    if (!looksLikeExpression) {
+      preview.hidden = true;
+      preview.textContent = "";
+      return;
+    }
+    const value = evaluateAmount(raw);
+    if (!Number.isFinite(value)) {
+      preview.hidden = true;
+      preview.textContent = "";
+      return;
+    }
+    preview.hidden = false;
+    preview.textContent = "= ¥" + money(Math.round(value * 100) / 100);
   }
 
   /* ---------- Data ---------- */
@@ -3335,6 +3458,7 @@
     els.editDate.value = record.date;
     els.editItem.value = record.item;
     els.editAmount.value = Number(record.amount).toFixed(2);
+    updateAmountPreview(els.editAmount, els.editAmountPreview);
     els.editSave.disabled = false;
     els.editSave.textContent = "保存修改";
     renderCategoryChoices(els.editCategoryGrid, editCategory, "edit-category", function (name) {
@@ -3376,7 +3500,7 @@
 
     const recordDate = els.editDate.value;
     const item = els.editItem.value.trim();
-    const amount = Math.round(Number(els.editAmount.value) * 100) / 100;
+    const amount = Math.round(evaluateAmount(els.editAmount.value) * 100) / 100;
 
     if (!recordDate) {
       showToast("请选择日期");
@@ -3389,7 +3513,7 @@
       return;
     }
     if (!isFinite(amount) || amount <= 0 || amount > 99999999.99) {
-      showToast("请输入正确的金额");
+      showToast("请输入正确的金额，可以写 2+3+3 这样的算式");
       els.editAmount.focus();
       return;
     }
@@ -4288,7 +4412,7 @@
 
     const date = els.date.value;
     const item = els.item.value.trim() || selectedCategory;
-    const amount = Math.round(Number(els.amount.value) * 100) / 100;
+    const amount = Math.round(evaluateAmount(els.amount.value) * 100) / 100;
 
     if (!date) {
       showToast("请选择日期");
@@ -4296,7 +4420,7 @@
       return;
     }
     if (!isFinite(amount) || amount <= 0) {
-      showToast("请输入大于 0 的金额");
+      showToast("请输入大于 0 的金额，可以写 2+3+3 这样的算式");
       els.amount.focus();
       return;
     }
@@ -4331,6 +4455,7 @@
       selectedDate = date;
       els.item.value = selectedCategory;
       els.amount.value = "";
+      updateAmountPreview(els.amount, els.amountPreview);
       render();
       showToast("已记下 ¥" + money(amount) + "，已写入 data.json");
       els.item.focus();
@@ -4511,6 +4636,12 @@
     els.item.value = selectedCategory;
 
     els.form.addEventListener("submit", addRecord);
+    els.amount.addEventListener("input", function () {
+      updateAmountPreview(els.amount, els.amountPreview);
+    });
+    els.editAmount.addEventListener("input", function () {
+      updateAmountPreview(els.editAmount, els.editAmountPreview);
+    });
     els.date.addEventListener("change", updateDateHint);
     els.prevMonth.addEventListener("click", function () { shiftMonth(-1); });
     els.nextMonth.addEventListener("click", function () { shiftMonth(1); });
