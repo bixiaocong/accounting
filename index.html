@@ -1704,7 +1704,11 @@
     background: #fff;
   }
 
-  .manage-task-row .task-main { flex: 1; min-width: 0; }
+  .manage-task-row .task-main {
+    display: block;
+    flex: 1;
+    min-width: 0;
+  }
 
   .manage-task-row .task-name {
     font-size: 13px;
@@ -1775,8 +1779,8 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    min-height: 47px;
-    padding: 7px 8px;
+    min-height: 38px;
+    padding: 6px 8px;
     border-radius: 12px;
     cursor: pointer;
     transition: background 0.17s ease;
@@ -1813,9 +1817,18 @@
 
   .task-check-box:disabled { cursor: default; }
 
-  .task-main { flex: 1; min-width: 0; }
+  .task-main {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+  }
 
   .task-name {
+    flex: 1;
+    min-width: 0;
     overflow: hidden;
     color: #34362f;
     font-size: 13px;
@@ -1825,7 +1838,7 @@
   }
 
   .task-schedule {
-    margin-top: 2px;
+    flex: 0 0 auto;
     overflow: hidden;
     color: var(--muted-light);
     font-size: 10.5px;
