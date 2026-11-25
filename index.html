@@ -885,11 +885,11 @@
     background: #f7f2e9;
   }
 
-  .calendar-day.has-records {
+  .calendar-day.is-day {
     background: #f6f1e8;
   }
 
-  .calendar-day.has-records:hover {
+  .calendar-day.is-day:hover {
     border-color: #dacbb9;
     background: #f2ebdf;
   }
@@ -3220,8 +3220,7 @@
 
       const button = document.createElement("button");
       button.type = "button";
-      button.className = "calendar-day" +
-        (info ? " has-records" : "") +
+      button.className = "calendar-day is-day" +
         (date === today ? " is-today" : "") +
         (isSelected ? " is-selected" : "") +
         (isFuture ? " is-future" : "");
